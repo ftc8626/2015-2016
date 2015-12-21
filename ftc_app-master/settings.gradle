@@ -1,0 +1,6 @@
+// FTC8626 apps
+include (':FTC8626')
+// Swerve apps
+include (':SwerveRoboticsLibrary')
+// FTC Apps
+include (':FtcRobotController')

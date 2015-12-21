@@ -1,0 +1,35 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 19
+    buildToolsVersion '21.1.2'
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 19
+    }
+    buildTypes {
+        release {
+            debuggable true
+        }
+        debug {
+            debuggable true
+        }
+    }
+}
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+dependencies {
+    compile files('libs/android-support-v4.jar')
+    compile (name:'RobotCore-release', ext:'aar')
+    compile (name:'Hardware-release', ext:'aar')
+    compile (name:'FtcCommon-release', ext:'aar')
+    compile (name:'ModernRobotics-release', ext:'aar')
+    compile (name:'Analytics-release', ext:'aar')
+    compile (name:'WirelessP2p-release', ext:'aar')
+    compile project(':SwerveRoboticsLibrary')
+}
