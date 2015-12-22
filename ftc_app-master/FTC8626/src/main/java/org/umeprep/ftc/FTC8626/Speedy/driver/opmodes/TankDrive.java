@@ -65,12 +65,12 @@ public class TankDrive extends OpMode {
     ////Servo dumpClimbers;
 
     // position of the arm servo.
-    double tapeMeasureUpDownPosition;
+    double tapeMeasureUpDownPosition = .2;
 
     //double dumpClimbersPosition;
 
     // amount to change the tape measure up down servo position by
-    double tapeMeasureUpDownDelta = 0.1;
+    double tapeMeasureUpDownDelta = 0.0004;
 
     /**
      * Constructor
@@ -131,7 +131,7 @@ public class TankDrive extends OpMode {
 
     private void setIncline() throws InterruptedException {
 
-        tapeMeasureUpDownPosition = .5;
+        tapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
     }
 
     /*
@@ -160,10 +160,10 @@ public class TankDrive extends OpMode {
 
         // Extend or retract the hook
         if (gamepad1.dpad_up && !gamepad1.dpad_down) {
-            motorHook.setPower(.2);
+            motorHook.setPower(.6);
         }
         else if (gamepad1.dpad_down && !gamepad1.dpad_up) {
-            motorHook.setPower(-.2);
+            motorHook.setPower(-.6);
         }
         else {
             motorHook.setPower(0);
@@ -171,11 +171,13 @@ public class TankDrive extends OpMode {
 
         // Change the height of the hook and tape measure
         if (gamepad1.y) {
-            tapeMeasureUpDown.setPosition(.4);
+            tapeMeasureUpDownPosition += tapeMeasureUpDownDelta;
         }
         else if (gamepad1.b) {
-            tapeMeasureUpDown.setPosition(.5);
+            tapeMeasureUpDownPosition -= tapeMeasureUpDownDelta;
         }
+
+        tapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
 
         ////if (gamepad1.a) {
         // if the A button is pushed on gamepad1, increment the position of
@@ -198,8 +200,8 @@ public class TankDrive extends OpMode {
         ////left =  (float)scaleInput(left);
 
         // write the values to the motors
-        motorRight.setPower(right * .3);
-        motorLeft.setPower(left * .3);
+        motorRight.setPower(right * .5);
+        motorLeft.setPower(left * .5);
         //motorRightKick.setPower(right);
         //motorLeftKick.setPower(left);
 
