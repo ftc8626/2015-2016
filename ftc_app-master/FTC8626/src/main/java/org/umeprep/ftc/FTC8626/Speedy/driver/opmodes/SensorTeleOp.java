@@ -33,14 +33,21 @@ package org.umeprep.ftc.FTC8626.Speedy.driver.opmodes;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.I2cDevice;
 import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import org.swerverobotics.library.ClassFactory;
+import org.swerverobotics.library.interfaces.EulerAngles;
 import org.swerverobotics.library.interfaces.IBNO055IMU;
 import org.swerverobotics.library.interfaces.Position;
+import org.swerverobotics.library.interfaces.TeleOp;
+import org.swerverobotics.library.interfaces.Velocity;
+
+import java.util.Iterator;
 
 
 /**
@@ -48,17 +55,31 @@ import org.swerverobotics.library.interfaces.Position;
  * <p/>
  * Enables control of the robot via the gamepad
  */
+@TeleOp(name="SensorTeleOp", group="FTC8626")
 public class SensorTeleOp extends OpMode {
 
     DcMotor motorRight;
     DcMotor motorLeft;
 
-    private TouchSensor v_sensor_touch;
+   // private TouchSensor v_sensor_touch;
     private OpticalDistanceSensor v_sensor_ods;
-    //private AdaFruitBNO055IMU v_sensor_ods;
-    private I2cDevice v_sensor_gyro;
-    //private IBNO055IMU adaFruitBNO055IMU;
-    private IBNO055IMU adaFruitBNO055IMU;
+
+    private IBNO055IMU              imu;
+    private ElapsedTime elapsed    = new ElapsedTime();
+    private IBNO055IMU.Parameters   parameters = new IBNO055IMU.Parameters();
+
+    // Here we have state we use for updating the dashboard. The first of these is important
+    // to read only once per update, as its acquisition is expensive. The remainder, though,
+    // could probably be read once per item, at only a small loss in display accuracy.
+    EulerAngles angles;
+    Position position;
+    int loopCycles;
+    int i2cCycles;
+    double ms;
+
+    // OpMode management from Swerve code SychronousOpMode.java
+    private volatile boolean                started;
+    private volatile boolean                stopRequested;
 
     // position of the arm servo.
     Servo dumpClimbers;
@@ -78,7 +99,7 @@ public class SensorTeleOp extends OpMode {
      * Constructor
      */
     public SensorTeleOp() {
-        adaFruitBNO055IMU = ClassFactory.createAdaFruitBNO055IMU(this, v_sensor_gyro);
+
     }
 
     /*
@@ -89,30 +110,93 @@ public class SensorTeleOp extends OpMode {
     @Override
     public void init() {
 
+        telemetry.addData("Robot says", "IMU: adding parameters");
+
+        parameters.angleunit      = IBNO055IMU.ANGLEUNIT.DEGREES;
+        parameters.accelunit      = IBNO055IMU.ACCELUNIT.METERS_PERSEC_PERSEC;
+        parameters.loggingEnabled = false;
+        parameters.loggingTag     = "Gyro";
+
+        telemetry.addData("Robot says", "IMU: added parameters");
+
+        try {
+
+/*
+            HardwareMap.DeviceMapping<I2cDevice> i2cDeviceList = hardwareMap.i2cDevice;
+            for (I2cDevice item : i2cDeviceList)
+            {
+                String listDeviceName = item.getDeviceName();
+                telemetry.addData("Robot says", "I2C Device list: " + listDeviceName);
+*/
+                I2cDevice device = hardwareMap.i2cDevice.get("I2cDevice");
+//                I2cDevice device = hardwareMap.i2cDevice.get("Gyro");
+//                String actualDeviceName = device.getDeviceName();
+//                telemetry.addData("Robot says", "I2C Device retrieved: " + actualDeviceName);
+//            }
+
+            //telemetry.addData("Robot says", "IMU: creating IMU");
+
+            imu = ClassFactory.createAdaFruitBNO055IMU(this, device, parameters);
+                    //device, parameters);
+//            imu = ClassFactory.createAdaFruitBNO055IMU(hardwareMap.i2cDevice.get("I2cDevice"), parameters);
+
+            //telemetry.addData("Robot says", "IMU temp: " + imu.getTemperature());
+
+        }
+        catch (Exception ex)
+        {
+            telemetry.addData("Robot says", "Error: " + ex.getMessage());
+        }
+
+        telemetry.addData("Robot says", "IMU Device created");
+
+        imu.startAccelerationIntegration(new Position(), new Velocity());
+        telemetry.addData("Robot says", "IMU acceleration started");
+
+        double temp = imu.getTemperature();
+        telemetry.addData("Robot says", "IMU temp: " + temp);
+
+        // Set up our dashboard computations
+        //composeDashboard();
+
         //
         // Connect the sensors.
         //
-        try {
-            v_sensor_gyro = hardwareMap.i2cDevice.get("Gyro_1");
-        } catch (Exception p_exeception) {
-            m_warning_message("Gyro_1");
-            v_sensor_touch = null;
-        }
 
-        try {
-            v_sensor_touch = hardwareMap.touchSensor.get("Touch_1");
-        } catch (Exception p_exeception) {
-            m_warning_message("Touch_1");
-            v_sensor_touch = null;
-        }
+        //imu = ClassFactory.createAdaFruitBNO055IMU(hardwareMap.i2cDevice.get("Gyro"), parameters);
 
-        try {
-            v_sensor_ods = hardwareMap.opticalDistanceSensor.get("ODS_1");
-        } catch (Exception p_exeception) {
-            m_warning_message("ODS_1");
-            v_sensor_ods = null;
-        }
+        // Enable reporting of position using the naive integrator
+        //imu.startAccelerationIntegration(new Position(), new Velocity());
 
+        //try {
+            //v_sensor_gyro = hardwareMap.i2cDevice.get("Gyro");
+        //} catch (Exception p_exeception) {
+          //  m_warning_message("Gyro");
+            //v_sensor_touch = null;
+        //}
+
+        //try {
+            //v_sensor_touch = hardwareMap.touchSensor.get("Touch_1");
+        //} catch (Exception p_exeception) {
+            //m_warning_message("Touch_1");
+           // v_sensor_touch = null;
+        //}
+
+       //try {
+            //v_sensor_ods = hardwareMap.opticalDistanceSensor.get("ODS");
+       //} catch (Exception p_exeception) {
+          //  m_warning_message("ODS");
+            //v_sensor_ods = null;
+       //}
+
+/*
+        if (a_ods_light_detected() > 0) {
+            telemetry.addData("Robot says", "ODS: " + a_ods_light_detected());
+        } else {
+            telemetry.addData("Robot says", "ODS: No light detected");
+        }
+*/
+        //telemetry.addData("Robot says", "gyro: " + imu.getGravity());
 
 		/*
          * Use the hardwareMap to get the dc motors and servos by name. Note
@@ -164,6 +248,8 @@ public class SensorTeleOp extends OpMode {
         //}
         //catch (InterruptedException ex) {}
 
+        //telemetry.addData("","Welcome Driver");
+        //telemetry.addData("Robot says", "Hi");
     }
 
     /*
@@ -174,19 +260,28 @@ public class SensorTeleOp extends OpMode {
     @Override
     public void loop() {
 
-        telemetry.addData("Text", "*** Robot Data***");
+        // Loop and update the dashboard
+        /*
+        while (opModeIsActive())
+        {
+            telemetry.update();
+            idle();
+        }
+        */
 
+        //telemetry.addData("Text", "Position:" + position);
+/*
         if (is_touch_sensor_pressed()) {
             telemetry.addData("Robot says", "Touched: " + is_touch_sensor_pressed());
         }
 
-        if (is_touch_sensor_pressed()) {
+        //if (is_touch_sensor_pressed()) {
             if (a_ods_light_detected() > 0) {
                 telemetry.addData("Robot says", "ODS: " + a_ods_light_detected());
             } else {
                 telemetry.addData("Robot says", "ODS: No light detected");
             }
-        }
+        //}
 
         if (is_touch_sensor_pressed()) {
             if (adaFruitBNO055IMU.isGyroCalibrated()) {
@@ -197,6 +292,7 @@ public class SensorTeleOp extends OpMode {
             telemetry.addData("Robot says", "Gyro position: " + adaFruitBNO055IMU.getPosition());
         }
 
+*/
 		/*
 		 * Gamepad 1
 		 * 
@@ -344,9 +440,9 @@ public class SensorTeleOp extends OpMode {
     {
         boolean l_return = false;
 
-        if (v_sensor_touch != null) {
-            l_return = v_sensor_touch.isPressed();
-        }
+        //if (v_sensor_touch != null) {
+          //  l_return = v_sensor_touch.isPressed();
+       // }
 
         return l_return;
 
@@ -363,52 +459,22 @@ public class SensorTeleOp extends OpMode {
     double a_ods_light_detected()
 
     {
-        double l_return = 0.0;
+        double l_return = 0;
 
         if (v_sensor_ods != null) {
-            v_sensor_ods.getLightDetected();
+           l_return = v_sensor_ods.getLightDetected();
+            //l_return = v_sensor_ods.getLightDetectedRaw();
         }
 
         return l_return;
 
     } // a_ods_light_detected
 
-    /* ---------------
-     SWERVE STUFF
-     *
-    @Override public void main() throws InterruptedException
-    {
-        // We are expecting the IMU to be attached to an I2C port on  a core device interface
-        // module and named "imu". Retrieve that raw I2cDevice and then wrap it in an object that
-        // semantically understands this particular kind of sensor.
-        parameters.angleunit      = IBNO055IMU.ANGLEUNIT.DEGREES;
-        parameters.accelunit      = IBNO055IMU.ACCELUNIT.METERS_PERSEC_PERSEC;
-        parameters.loggingEnabled = false;
-        parameters.loggingTag     = "BNO055";
-        imu = ClassFactory.createAdaFruitBNO055IMU(hardwareMap.i2cDevice.get("imu"), parameters);
-
-        // Enable reporting of position using the naive integrator
-        imu.startAccelerationIntegration(new Position(), new Velocity());
-
-        // Set up our dashboard computations
-        composeDashboard();
-
-        // Wait until we're told to go
-        waitForStart();
-
-        // Loop and update the dashboard
-        while (opModeIsActive())
-        {
-            telemetry.update();
-            idle();
-        }
-    }
-
     //----------------------------------------------------------------------------------------------
     // dashboard configuration
     //----------------------------------------------------------------------------------------------
 
-    void composeDashboard()
+   /* void composeDashboard()
     {
         // The default dashboard update rate is a little too slow for our taste here, so we update faster
         telemetry.setUpdateIntervalMs(200);
@@ -547,7 +613,7 @@ public class SensorTeleOp extends OpMode {
                 ? "m" : "??";
         return String.format("%.2f%s", coordinate, unit);
     }
-
+*/
     //----------------------------------------------------------------------------------------------
     // Utility
     //----------------------------------------------------------------------------------------------
@@ -602,5 +668,46 @@ public class SensorTeleOp extends OpMode {
 
         return result.toString();
     }
+
+    /*
+     * Answer as to whether this opMode is active and the robot should continue onwards. If the
+     * opMode is not active, synchronous threads should terminate at their earliest convenience.
+     *
+     * @return whether the OpMode is currently active. If this returns false, you should
+     *         break out of the loop in your {@link #main()} method and return to its caller.
+     * @see #main()
+     * @see #isStarted()
+     * @see #isStopRequested()
+     */
+    public final boolean opModeIsActive()
+    {
+        return !this.isStopRequested() && this.isStarted();
+    }
+
+    /**
+     * Has the opMode been started?
+     *
+     * @return whether this opMode has been started or not
+     * @see #opModeIsActive()
+     * @see #isStopRequested()
+     */
+    public final boolean isStarted()
+    {
+        return this.started;
+    }
+
+    /**
+     * Has the the stopping of the opMode been requested?
+     *
+     * @return whether stopping opMode has been requested or not
+     * @see #opModeIsActive()
+     * @see #isStarted()
+     */
+    public final boolean isStopRequested()
+    {
+        return this.stopRequested || Thread.currentThread().isInterrupted();
+    }
+
+
 }
 

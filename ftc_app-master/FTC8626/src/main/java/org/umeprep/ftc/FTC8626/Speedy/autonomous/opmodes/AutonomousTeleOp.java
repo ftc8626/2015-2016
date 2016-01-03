@@ -31,15 +31,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 package org.umeprep.ftc.FTC8626.Speedy.autonomous.opmodes;
 
+import org.swerverobotics.library.ClassFactory;
+import org.swerverobotics.library.SynchronousOpMode;
+import org.swerverobotics.library.TelemetryDashboardAndLog;
+import org.swerverobotics.library.interfaces.EulerAngles;
+import org.swerverobotics.library.interfaces.IBNO055IMU;
+import org.swerverobotics.library.interfaces.IFunc;
+import org.swerverobotics.library.interfaces.II2cDeviceClientUser;
+import org.swerverobotics.library.interfaces.Position;
 import org.swerverobotics.library.interfaces.TeleOp;
+import org.swerverobotics.library.interfaces.Velocity;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveMoveDirection;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveTurnDirection;
 
+import com.qualcomm.robotcore.hardware.DeviceInterfaceModule;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.I2cDevice;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 /**
@@ -47,118 +59,206 @@ import com.qualcomm.robotcore.util.Range;
  * <p/>
  */
 @TeleOp(name="AutonomousTeleOp", group="FTC8626")
-public class AutonomousTeleOp extends LinearOpMode {
+public class AutonomousTeleOp extends SynchronousOpMode {
 
     private DcMotor motorRight;
     private DcMotor motorLeft;
+
     private TouchSensor v_sensor_touch;
     private OpticalDistanceSensor v_sensor_ods;
+
+    private IBNO055IMU v_sensor_gyro;
+    private ElapsedTime elapsed    = new ElapsedTime();
+    private IBNO055IMU.Parameters   parameters = new IBNO055IMU.Parameters();
+
+    // Here we have state we use for updating the dashboard. The first of these is important
+    // to read only once per update, as its acquisition is expensive. The remainder, though,
+    // could probably be read once per item, at only a small loss in display accuracy.
+    EulerAngles angles;
+    Position position;
+    int loopCycles;
+    int i2cCycles;
+    double ms;
 
     public boolean v_warning_generated = false;
     public String v_warning_message;
 
-    Double turnDuration = 1.085;
+    //Double turnDuration = 1.085;
 
+    /**
+     * Constructor
+     */
+/*
+    public AutonomousTeleOp() {
+        telemetry = new TelemetryDashboardAndLog();
+        telemetry.addData("Robot habla", "hola");
+    }
+*/
     @Override
-    public void runOpMode() throws InterruptedException {
-        initializeRobot();
+    public void main() throws InterruptedException {
 
-        waitForStart();
+        //try {
+            initializeRobot();
 
-        makeSomeMoves();
+            // Set up our dashboard computations
+            composeDashboard();
+
+            //telemetry.addData("Begin", "say something");
+
+//            DisplayTelemetryOnPhone();
+
+            waitForStart();
+
+
+            //makeSomeMoves();
+            //makeSomeOtherMoves();
+            //DisplayTelemetryOnPhone();
+
+        while (opModeIsActive())
+        {
+            /*
+            if (this.updateGamepads()) {
+
+            }
+            */
+            telemetry.update();
+            this.idle();
+        }
+
+        //}
+/*        catch (Exception ex) {
+            telemetry.addData("Error", "Error: " + ex.getMessage());
+        }
+        finally {
+            DisplayTelemetryOnPhone();
+        }
+*/
+    }
+
+    private void DisplayTelemetryOnPhone() throws InterruptedException {
+        while (opModeIsActive())
+        {
+            telemetry.update();
+            idle();
+        }
     }
 
     private void initializeRobot() {
-        motorLeft = hardwareMap.dcMotor.get("motor_1");   // Get the name of the real motors
-        motorRight = hardwareMap.dcMotor.get("motor_2");  // Get the name of the real motors
-        motorLeft.setDirection(DcMotor.Direction.REVERSE);
+        //telemetry.addData("Robot says","Let's ride.");
 
-        //
-        // Connect the sensors.
-        //
+        InitializeMotors();
+
+        //InitializeSensors();
+
+    }
+
+
+    private void InitializeSensors() {
+        /*
+        HardwareMap.DeviceMapping<I2cDevice> i2cDeviceList = hardwareMap.i2cDevice;
+
+        for (I2cDevice item : i2cDeviceList) {
+            String listDeviceName = item.getDeviceName();
+            telemetry.addData(listDeviceName, "I2C Device version: " + item.getClass());
+        }
+        */
+/*
         try {
             v_sensor_touch = hardwareMap.touchSensor.get("Touch_1");
         } catch (Exception p_exeception) {
-            m_warning_message("Touch_1");
+            //m_warning_message("Touch_1");
             //DbgLog.msg (p_exeception.getLocalizedMessage ());
 
             v_sensor_touch = null;
         }
 
         try {
-            v_sensor_ods = hardwareMap.opticalDistanceSensor.get("ODS_1");
-        } catch (Exception p_exeception) {
-            m_warning_message("ODS_1");
-            //DbgLog.msg (p_exeception.getLocalizedMessage ());
+            v_sensor_ods = hardwareMap.opticalDistanceSensor.get("ODS");
+        } catch (Exception p_exception) {
+           // m_warning_message("ODS");
+            //DbgLog.msg (p_exception.getLocalizedMessage ());
 
             v_sensor_touch = null;
-
-            /*
-            try
-            {
-                v_sensor_ods = hardwareMap.opticalDistanceSensor.get
-                        ( "sensor_eopd"
-                        );
-            }
-            catch (Exception p_exeception_eopd)
-            {
-                try
-                {
-                    v_sensor_ods = hardwareMap.opticalDistanceSensor.get
-                            ( "sensor_EOPD"
-                            );
-                }
-                catch (Exception p_exeception_EOPD)
-                {
-                    m_warning_message ("sensor_ods/eopd/EOPD");
-                    /*
-                    DbgLog.msg
-                            ( "Can't map sensor_ods nor sensor_eopd, nor" +
-                                            " sensor_EOPD ("
-                                            + p_exeception_EOPD.getLocalizedMessage ()
-                                            + ").\n"
-                            );
-                    *
-
-                    v_sensor_ods = null;
-                }
-            }
-            */
         }
+*/
+        //InitializeSensorGyro();
+    }
 
-    } // init
+    private void InitializeSensorGyro() {
+        //telemetry.addData("Robot says", "IMU: adding parameters");
+
+        parameters.angleunit      = IBNO055IMU.ANGLEUNIT.DEGREES;
+        parameters.accelunit      = IBNO055IMU.ACCELUNIT.METERS_PERSEC_PERSEC;
+        parameters.loggingEnabled = false;
+        parameters.loggingTag     = "Gyro";
+
+        telemetry.addData("Robot says", "IMU: added parameters");
+
+        I2cDevice device = hardwareMap.i2cDevice.get("I2cDevice");
+        v_sensor_gyro = ClassFactory.createAdaFruitBNO055IMU(this, device, parameters);
+
+        telemetry.addData("Robot says", "IMU Device created");
+
+        v_sensor_gyro.startAccelerationIntegration(new Position(), new Velocity());
+        telemetry.addData("Robot says", "IMU acceleration started");
+
+
+        double temp = v_sensor_gyro.getTemperature();
+        telemetry.addData("Robot says", "IMU temp: " + temp);
+
+        boolean isGyroCalibrated = v_sensor_gyro.isGyroCalibrated();
+        telemetry.addData("gyro","calibrated: " + isGyroCalibrated);
+
+    }
+
+
+    private void InitializeMotors() {
+        motorLeft = hardwareMap.dcMotor.get("Wheel 1");   // Get the name of the real motors
+        motorRight = hardwareMap.dcMotor.get("Wheel 2");  // Get the name of the real motors
+        motorLeft.setDirection(DcMotor.Direction.REVERSE);
+    }
 
     private void makeSomeMoves() throws InterruptedException {
 
-//        telemetry.addData("makeSomeMoves", "Starting move forward");
+        telemetry.addData("makeSomeMoves", "Starting move forward");
 
-        //    double duration = 1.2;
-        //move(DriveMoveDirection.Forward, .3, duration);
+            double duration = 1.2;
+            move(DriveMoveDirection.Forward, .3, duration);
         //      telemetry.addData("makeSomeMoves", "After move forward");
 
         //move(DriveMoveDirection.Backward, .3, duration);
 
         //telemetry.addData("makeSomeMoves3", "After move backward");
 
-        //Thread.sleep(1000);
+        Thread.sleep(1000);
 
         //testTurn(0);
-/*
-        turn(DriveTurnDirection.Left, 45);
-        move(DriveMoveDirection.Forward, .2, 1);
 
+        turn(DriveTurnDirection.Left, 180);
+
+        move(DriveMoveDirection.Forward, .3, 1);
+/*
         turn(DriveTurnDirection.Right, 135);
         move(DriveMoveDirection.Forward, .5, .7);
 
         move(DriveMoveDirection.Backward, .2, 1.5);
         turn(DriveTurnDirection.Left, 90);
         move(DriveMoveDirection.Forward, .8, .5);
-
 */
+
         /*
         boolean floatIt = true;
         move(DriveMoveDirection.Forward, .8, 1, floatIt);
         */
+    }
+
+    private void makeSomeOtherMoves() throws InterruptedException {
+
+        telemetry.addData("makeSomeOtherMoves", "Moving Forward");
+
+            double duration = 2;
+            move(DriveMoveDirection.Forward, .3,duration);
+
     }
 
     private void move(DriveMoveDirection robotMoveDirection, double movePower, double durationInSeconds) throws InterruptedException {
@@ -295,35 +395,38 @@ public class AutonomousTeleOp extends LinearOpMode {
     }
 */
     private void turn(DriveTurnDirection direction, float moveAngle) throws InterruptedException {
-        turnSpecificTime(direction, moveAngle, turnDuration);
+        turnSpecificTime(direction, moveAngle); //, turnDuration);
     }
 
-    private void turnSpecificTime(DriveTurnDirection direction, float moveAngle, double duration) throws InterruptedException {
+    private void turnSpecificTime(DriveTurnDirection direction, float moveAngle)
+    //, double duration)
+            throws InterruptedException {
 
         double angle = Range.clip(moveAngle, 0, 180);
 
-        // The following code will be replaced by the gyro if we get it working
-        float right = 0;
-        float left = 0;
+        // The following codewill be replaced by the gyro if we get it working
+        double rightPower = .5;
+        double leftPower = .5;
 
         // Translate the move Angle into an amount of right or left turn between 1 and -1
-        if (direction == DriveTurnDirection.Left) {
-            moveAngle = -moveAngle;
-        }
+        if (direction == DriveTurnDirection.Left)
+            leftPower = -rightPower;
+        else
+            rightPower = -leftPower;
 
-        right = 0 + moveAngle / 180;
-        left = 0 - moveAngle / 180;
+        double duration = moveAngle / 180;
+        //duration = 0 - moveAngle / 180;
 
         // clip the right/left values so that the values never exceed +/- 1
-        right = Range.clip(right, -1, 1);
-        left = Range.clip(left, -1, 1);
+        rightPower = Range.clip(rightPower, -1, 1);
+        leftPower = Range.clip(leftPower, -1, 1);
 
         // write the values to the motors
-        setMotorPower(right, left);
+        setMotorPower(rightPower, leftPower);
         continueAction(duration);
     }
 
-
+/*
     private void testTurn(double seed) throws InterruptedException {
         //double interval = 1;
 
@@ -334,7 +437,7 @@ public class AutonomousTeleOp extends LinearOpMode {
             Thread.sleep(1000);
         }
     }
-
+*/
 
     /*
     private void makeSomeMoves() throws InterruptedException
@@ -382,4 +485,198 @@ public class AutonomousTeleOp extends LinearOpMode {
 
     } // m_warning_message
 
+
+    // Swerve code
+//----------------------------------------------------------------------------------------------
+// dashboard configuration
+//----------------------------------------------------------------------------------------------
+
+    void composeDashboard()
+    {
+        // The default dashboard update rate is a little too slow for our taste here, so we update faster
+        telemetry.setUpdateIntervalMs(200);
+/*
+        // At the beginning of each telemetry update, grab a bunch of data
+        // from the IMU that we will then display in separate lines.
+        telemetry.addAction(new Runnable() { @Override public void run()
+        {
+            // Acquiring the angles is relatively expensive; we don't want
+            // to do that in each of the three items that need that info, as that's
+            // three times the necessary expense.
+            angles     = v_sensor_gyro.getAngularOrientation();
+            position   = v_sensor_gyro.getPosition();
+
+            // The rest of this is pretty cheap to acquire, but we may as well do it
+            // all while we're gathering the above.
+            loopCycles = getLoopCount();
+            i2cCycles  = ((II2cDeviceClientUser) v_sensor_gyro).getI2cDeviceClient().getI2cCycleCount();
+            ms         = elapsed.time() * 1000.0;
+        }
+        });
+        telemetry.addLine(
+                telemetry.item("loop count: ", new IFunc<Object>()
+                {
+                    public Object value()
+                    {
+                        return loopCycles;
+                    }
+                }),
+                telemetry.item("i2c cycle count: ", new IFunc<Object>()
+                {
+                    public Object value()
+                    {
+                        return i2cCycles;
+                    }
+                }));
+
+        telemetry.addLine(
+                telemetry.item("loop rate: ", new IFunc<Object>()
+                {
+                    public Object value()
+                    {
+                        return formatRate(ms / loopCycles);
+                    }
+                }),
+                telemetry.item("i2c cycle rate: ", new IFunc<Object>()
+                {
+                    public Object value()
+                    {
+                        return formatRate(ms / i2cCycles);
+                    }
+                }));
+
+        telemetry.addLine(
+                telemetry.item("status: ", new IFunc<Object>()
+                {
+                    public Object value()
+                    {
+                        return decodeStatus(v_sensor_gyro.getSystemStatus());
+                    }
+                }),
+                telemetry.item("calib: ", new IFunc<Object>()
+                {
+                    public Object value()
+                    {
+                        return decodeCalibration(v_sensor_gyro.read8(IBNO055IMU.REGISTER.CALIB_STAT));
+                    }
+                }));
+
+        telemetry.addLine(
+                telemetry.item("heading: ", new IFunc<Object>()
+                {
+                    public Object value()
+                    {
+                        return formatAngle(angles.heading);
+                    }
+                }),
+                telemetry.item("roll: ", new IFunc<Object>()
+                {
+                    public Object value()
+                    {
+                        return formatAngle(angles.roll);
+                    }
+                }),
+                telemetry.item("pitch: ", new IFunc<Object>()
+                {
+                    public Object value()
+                    {
+                        return formatAngle(angles.pitch);
+                    }
+                }));
+
+        telemetry.addLine(
+                telemetry.item("x: ", new IFunc<Object>()
+                {
+                    public Object value()
+                    {
+                        return formatPosition(position.x);
+                    }
+                }),
+                telemetry.item("y: ", new IFunc<Object>()
+                {
+                    public Object value()
+                    {
+                        return formatPosition(position.y);
+                    }
+                }),
+                telemetry.item("z: ", new IFunc<Object>()
+                {
+                    public Object value()
+                    {
+                        return formatPosition(position.z);
+                    }
+                }));
+                */
+    }
+
+    String formatAngle(double angle)
+    {
+        return parameters.angleunit==IBNO055IMU.ANGLEUNIT.DEGREES ? formatDegrees(angle) : formatRadians(angle);
+    }
+    String formatRadians(double radians)
+    {
+        return formatDegrees(degreesFromRadians(radians));
+    }
+    String formatDegrees(double degrees)
+    {
+        return String.format("%.1f", normalizeDegrees(degrees));
+    }
+    String formatRate(double cyclesPerSecond)
+    {
+        return String.format("%.2f", cyclesPerSecond);
+    }
+    String formatPosition(double coordinate)
+    {
+        String unit = parameters.accelunit== IBNO055IMU.ACCELUNIT.METERS_PERSEC_PERSEC
+                ? "m" : "??";
+        return String.format("%.2f%s", coordinate, unit);
+    }
+
+    //----------------------------------------------------------------------------------------------
+    // Utility
+    //----------------------------------------------------------------------------------------------
+
+    /** Normalize the angle into the range [-180,180) */
+    double normalizeDegrees(double degrees)
+    {
+        while (degrees >= 180.0) degrees -= 360.0;
+        while (degrees < -180.0) degrees += 360.0;
+        return degrees;
+    }
+    double degreesFromRadians(double radians)
+    {
+        return radians * 180.0 / Math.PI;
+    }
+
+    /** Turn a system status into something that's reasonable to show in telemetry */
+    String decodeStatus(int status)
+    {
+        switch (status)
+        {
+            case 0: return "idle";
+            case 1: return "syserr";
+            case 2: return "periph";
+            case 3: return "sysinit";
+            case 4: return "selftest";
+            case 5: return "fusion";
+            case 6: return "running";
+        }
+        return "unk";
+    }
+
+    /** Turn a calibration code into something that is reasonable to show in telemetry */
+    String decodeCalibration(int status)
+    {
+        StringBuilder result = new StringBuilder();
+
+        result.append(String.format("s%d", (status >> 2) & 0x03));  // SYS calibration status
+        result.append(" ");
+        result.append(String.format("g%d", (status >> 2) & 0x03));  // GYR calibration status
+        result.append(" ");
+        result.append(String.format("a%d", (status >> 2) & 0x03));  // ACC calibration status
+        result.append(" ");
+        result.append(String.format("m%d", (status >> 0) & 0x03));  // MAG calibration status
+
+        return result.toString();
+    }
 }

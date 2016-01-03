@@ -64,13 +64,18 @@ public class TankDrive extends OpMode {
     Servo tapeMeasureUpDown;
     ////Servo dumpClimbers;
 
+
     // position of the arm servo.
-    double tapeMeasureUpDownPosition = .2;
+    double HOOK_MIN_POSITION = 0;
+    double HOOK_MAX_POSITION = .6;
+
+    double HOOK_INITIAL_POSITION = .2;
+    double tapeMeasureUpDownPosition = HOOK_INITIAL_POSITION;
+    // amount to change the tape measure up down servo position by
+    double tapeMeasureUpDownDelta = 0.0004;
 
     //double dumpClimbersPosition;
 
-    // amount to change the tape measure up down servo position by
-    double tapeMeasureUpDownDelta = 0.0004;
 
     /**
      * Constructor
@@ -127,11 +132,12 @@ public class TankDrive extends OpMode {
 
         // write position values to the wrist and claw servo
         //dumpClimbers.setPosition(dumpClimbersPosition);
+        telemetry.addData("Robot says","Hi");
     }
 
     private void setIncline() throws InterruptedException {
 
-        tapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
+        tapeMeasureUpDown.setPosition(HOOK_INITIAL_POSITION);
     }
 
     /*
@@ -144,40 +150,89 @@ public class TankDrive extends OpMode {
 
 		/*
 		 * Gamepad 1
-		 *
-		 * Gamepad 1 controls the motors via the left stick, and it controls the
-		 * wrist/claw via the a,b, x, y buttons
 		 */
 
-        // throttle: left_stick_y ranges from -1 to 1, where -1 is full up, and
-        // 1 is full down
-        // direction: left_stick_x ranges from -1 to 1, where -1 is full left
-        // and 1 is full right
-        float direction2 = gamepad1.right_stick_y;
-        float direction = gamepad1.left_stick_y;
-        float left = direction;
-        float right = direction2;
+        //*********
+        // Drive with joysticks
+        //*********
+        // Currently testing using both game controllers
+        float left = gamepad1.left_stick_y; // + gamepad2.left_stick_y;
+        float right = gamepad1.right_stick_y; // + gamepad2.right_stick_y;
 
+        //clip the right/left values so that the values never exceed +/- 1
+        right = Range.clip(right, -1, 1);
+        left = Range.clip(left, -1, 1);
+        // write the values to the motors
+        motorRight.setPower(right * .5);
+        motorLeft.setPower(left * .5);
+        //
+        //
+        //
+
+        //*********
         // Extend or retract the hook
-        if (gamepad1.dpad_up && !gamepad1.dpad_down) {
-            motorHook.setPower(.6);
+        //*********
+        double hookOutSpeed = .2;
+        double hookInSpeed = -.2;
+
+        //clip the hook speed values so that the values never exceed +/- 1
+        hookOutSpeed = Range.clip(hookOutSpeed, -1, 1);
+        hookInSpeed = Range.clip(hookInSpeed, -1, 1);
+
+        //set the hook motor power
+        if (gamepad1.dpad_up) {
+            motorHook.setPower(hookOutSpeed);
         }
-        else if (gamepad1.dpad_down && !gamepad1.dpad_up) {
-            motorHook.setPower(-.6);
+        else if (gamepad1.dpad_down) {
+            motorHook.setPower(hookInSpeed);
         }
         else {
             motorHook.setPower(0);
         }
+        /*
+        if (gamepad2.dpad_up) {
+            motorHook.setPower(hookOutSpeed);
+        }
+        else if (gamepad2.dpad_down) {
+            motorHook.setPower(hookInSpeed);
+        }
+        else {
+            motorHook.setPower(0);
+        }
+        */
+        //
+        //
+        //
 
+        // ********
         // Change the height of the hook and tape measure
+        // ********
         if (gamepad1.y) {
             tapeMeasureUpDownPosition += tapeMeasureUpDownDelta;
         }
         else if (gamepad1.b) {
             tapeMeasureUpDownPosition -= tapeMeasureUpDownDelta;
         }
+        else if (gamepad1.a) {
+            tapeMeasureUpDownPosition = .2;
+        }
 
+        if (gamepad2.y) {
+            tapeMeasureUpDownPosition += tapeMeasureUpDownDelta;
+        }
+        else if (gamepad2.b) {
+            tapeMeasureUpDownPosition -= tapeMeasureUpDownDelta;
+        }
+        else if (gamepad2.a) {
+            tapeMeasureUpDownPosition = .2;
+        }
+        //clip the hook speed values so that the values never go below 0 or above .6
+        tapeMeasureUpDownPosition = Range.clip(tapeMeasureUpDownPosition, HOOK_MIN_POSITION, HOOK_MAX_POSITION);
         tapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
+        //
+        //
+        //
+
 
         ////if (gamepad1.a) {
         // if the A button is pushed on gamepad1, increment the position of
@@ -190,40 +245,17 @@ public class TankDrive extends OpMode {
         // motorLeftKick.setPower(0);
         ////}
 
-        //clip the right/left values so that the values never exceed +/- 1
-        ////right = Range.clip(right, -1, 1);
-        ////left = Range.clip(left, -1, 1);
 
         // scale the joystick value to make it easier to control
         // the robot more precisely at slower speeds.
         ////right = (float)scaleInput(right);
         ////left =  (float)scaleInput(left);
 
-        // write the values to the motors
-        motorRight.setPower(right * .5);
-        motorLeft.setPower(left * .5);
+
         //motorRightKick.setPower(right);
         //motorLeftKick.setPower(left);
 
         // Set servos
-        // update the position of the claw
-        ////if (gamepad1.dpad_up) {
-        //tapeMeasureUpDownPosition += tapeMeasureUpDownDelta;
-        ////tapeMeasureUpDownPosition = .7;
-        ////}
-
-        /*
-        if (gamepad1.dpad_down) {
-
-            //tapeMeasureUpDownPosition -= tapeMeasureUpDownDelta;
-            ////tapeMeasureUpDownPosition = 1;
-        }
-        */
-
-        //tapeMeasureUpDownPosition = .7;
-
-        ////tapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
-
 
         // clip the position values so that they never exceed their allowed range.
         //tapeMeasureUpDownPosition = Range.clip(armPosition, ARM_MIN_RANGE, ARM_MAX_RANGE);
@@ -240,6 +272,7 @@ public class TankDrive extends OpMode {
         telemetry.addData("Text", "*** Robot Data***");
         telemetry.addData("left tgt pwr",  "left  pwr: " + String.format("%.2f", left));
         telemetry.addData("right tgt pwr", "right pwr: " + String.format("%.2f", right));
+        telemetry.addData("Robot says","Long live the King.");
     }
 
     /*
