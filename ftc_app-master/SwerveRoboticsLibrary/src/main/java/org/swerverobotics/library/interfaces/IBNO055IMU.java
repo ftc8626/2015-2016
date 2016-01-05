@@ -33,44 +33,68 @@ public interface IBNO055IMU
      *
      * @see #initialize(Parameters)
      */
-    class Parameters
-        {
-        /** the address at which the sensor resides on the I2C bus.  */
-        public I2CADDR          i2cAddr8Bit         = I2CADDR.DEFAULT;
-        
-        /** the mode we wish to use the sensor in */
-        public SENSOR_MODE      mode                = SENSOR_MODE.IMU;
+    class Parameters {
+        /**
+         * the address at which the sensor resides on the I2C bus.
+         */
+        public I2CADDR i2cAddr8Bit = I2CADDR.DEFAULT;
 
-        /** whether to use the external or internal 32.768khz crystal. External crystal
-         * use is recommended by the BNO055 specification. */
-        public boolean          useExternalCrystal  = true;
+        /**
+         * the mode we wish to use the sensor in
+         */
+        public SENSOR_MODE mode = SENSOR_MODE.IMU;
 
-        /** units in which temperature are measured. See Section 3.6.1 (p31) of the BNO055 specification */
-        public TEMPUNIT         temperatureUnit     = TEMPUNIT.CELSIUS;
-        /** units in which angles and angular rates are measured. See Section 3.6.1 (p31) of the BNO055 specification */
-        public ANGLEUNIT        angleunit           = ANGLEUNIT.RADIANS;
-        /** units in which accelerations are measured. See Section 3.6.1 (p31) of the BNO055 specification */
-        public ACCELUNIT        accelunit           = ACCELUNIT.METERS_PERSEC_PERSEC;
-        /** directional convention for measureing pitch angles. See Section 3.6.1 (p31) of the BNO055 specification */
-        public PITCHMODE        pitchmode           = PITCHMODE.ANDROID;    // Section 3.6.2
+        /**
+         * whether to use the external or internal 32.768khz crystal. External crystal
+         * use is recommended by the BNO055 specification.
+         */
+        public boolean useExternalCrystal = true;
 
-        /** calibration data with which the BNO055 should be initialized */
-        public byte[]           calibrationData     = null;
+        /**
+         * units in which temperature are measured. See Section 3.6.1 (p31) of the BNO055 specification
+         */
+        public TEMPUNIT temperatureUnit = TEMPUNIT.CELSIUS;
+        /**
+         * units in which angles and angular rates are measured. See Section 3.6.1 (p31) of the BNO055 specification
+         */
+        public ANGLEUNIT angleunit = ANGLEUNIT.RADIANS;
+        /**
+         * units in which accelerations are measured. See Section 3.6.1 (p31) of the BNO055 specification
+         */
+        public ACCELUNIT accelunit = ACCELUNIT.METERS_PERSEC_PERSEC;
+        /**
+         * directional convention for measureing pitch angles. See Section 3.6.1 (p31) of the BNO055 specification
+         */
+        public PITCHMODE pitchmode = PITCHMODE.ANDROID;    // Section 3.6.2
 
-        /** the algorithm to use for integrating acceleration to produce velocity and position.
-         * If not specified, a simple but not especially effective internal algorithm will be used. */
+        /**
+         * calibration data with which the BNO055 should be initialized
+         */
+        public byte[] calibrationData = null;
+
+        /**
+         * the algorithm to use for integrating acceleration to produce velocity and position.
+         * If not specified, a simple but not especially effective internal algorithm will be used.
+         */
         public IAccelerationIntegrator accelerationIntegrationAlgorithm = null;
 
-        /** the boost in thread priority to use for data acquisition. A small increase in the
+        /**
+         * the boost in thread priority to use for data acquisition. A small increase in the
          * thread priority can help reduce timestamping jitter and improve acceleration integration
-         * at only a small detriment to other parts of the system. */
-        public int              threadPriorityBoost = 0;
-        
-        /** debugging aid: enable logging for this device? */
-        public boolean          loggingEnabled      = false;
-        /** debugging aid: the logging tag to use when logging */
-        public String           loggingTag          = "AdaFruitIMU";
-        }
+         * at only a small detriment to other parts of the system.
+         */
+        public int threadPriorityBoost = 0;
+
+        /**
+         * debugging aid: enable logging for this device?
+         */
+        public boolean loggingEnabled = false;
+
+        /**
+         * debugging aid: the logging tag to use when logging
+         */
+        public String loggingTag = "AdaFruitIMU";
+    }
 
     /**
      * Shut down the sensor. This doesn't do anything in the hardware device itself, but rather

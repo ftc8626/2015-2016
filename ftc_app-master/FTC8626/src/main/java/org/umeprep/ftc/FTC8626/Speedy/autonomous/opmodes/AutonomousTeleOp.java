@@ -44,7 +44,6 @@ import org.swerverobotics.library.interfaces.Velocity;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveMoveDirection;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveTurnDirection;
 
-import com.qualcomm.robotcore.hardware.DeviceInterfaceModule;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.I2cDevice;
 import com.qualcomm.robotcore.hardware.TouchSensor;
@@ -61,16 +60,8 @@ import com.qualcomm.robotcore.util.Range;
 @TeleOp(name="AutonomousTeleOp", group="FTC8626")
 public class AutonomousTeleOp extends SynchronousOpMode {
 
-    private DcMotor motorRight;
-    private DcMotor motorLeft;
-
-    private TouchSensor v_sensor_touch;
-    private OpticalDistanceSensor v_sensor_ods;
-
-    private IBNO055IMU v_sensor_gyro;
-    private ElapsedTime elapsed    = new ElapsedTime();
-    private IBNO055IMU.Parameters   parameters = new IBNO055IMU.Parameters();
-
+    public boolean v_warning_generated = false;
+    public String v_warning_message;
     // Here we have state we use for updating the dashboard. The first of these is important
     // to read only once per update, as its acquisition is expensive. The remainder, though,
     // could probably be read once per item, at only a small loss in display accuracy.
@@ -79,9 +70,13 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     int loopCycles;
     int i2cCycles;
     double ms;
-
-    public boolean v_warning_generated = false;
-    public String v_warning_message;
+    private DcMotor motorRight;
+    private DcMotor motorLeft;
+    private TouchSensor v_sensor_touch;
+    private OpticalDistanceSensor v_sensor_ods;
+    private IBNO055IMU v_sensor_gyro;
+    private ElapsedTime elapsed    = new ElapsedTime();
+    private IBNO055IMU.Parameters   parameters = new IBNO055IMU.Parameters();
 
     //Double turnDuration = 1.085;
 
@@ -148,20 +143,20 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
         InitializeMotors();
 
-        //InitializeSensors();
+        InitializeSensors();
 
     }
 
 
     private void InitializeSensors() {
-        /*
+
         HardwareMap.DeviceMapping<I2cDevice> i2cDeviceList = hardwareMap.i2cDevice;
 
         for (I2cDevice item : i2cDeviceList) {
             String listDeviceName = item.getDeviceName();
-            telemetry.addData(listDeviceName, "I2C Device version: " + item.getClass());
+            telemetry.addData(listDeviceName, "I2C Device class: " + item.getClass());
         }
-        */
+
 /*
         try {
             v_sensor_touch = hardwareMap.touchSensor.get("Touch_1");
@@ -189,8 +184,10 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
         parameters.angleunit      = IBNO055IMU.ANGLEUNIT.DEGREES;
         parameters.accelunit      = IBNO055IMU.ACCELUNIT.METERS_PERSEC_PERSEC;
+        parameters.temperatureUnit = IBNO055IMU.TEMPUNIT.FARENHEIT;
         parameters.loggingEnabled = false;
         parameters.loggingTag     = "Gyro";
+        parameters.pitchmode      = IBNO055IMU.PITCHMODE.ANDROID;
 
         telemetry.addData("Robot says", "IMU: added parameters");
 
@@ -208,7 +205,6 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
         boolean isGyroCalibrated = v_sensor_gyro.isGyroCalibrated();
         telemetry.addData("gyro","calibrated: " + isGyroCalibrated);
-
     }
 
 
@@ -495,7 +491,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     {
         // The default dashboard update rate is a little too slow for our taste here, so we update faster
         telemetry.setUpdateIntervalMs(200);
-/*
+
         // At the beginning of each telemetry update, grab a bunch of data
         // from the IMU that we will then display in separate lines.
         telemetry.addAction(new Runnable() { @Override public void run()
@@ -513,6 +509,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             ms         = elapsed.time() * 1000.0;
         }
         });
+        
         telemetry.addLine(
                 telemetry.item("loop count: ", new IFunc<Object>()
                 {
@@ -585,10 +582,8 @@ public class AutonomousTeleOp extends SynchronousOpMode {
                 }));
 
         telemetry.addLine(
-                telemetry.item("x: ", new IFunc<Object>()
-                {
-                    public Object value()
-                    {
+                telemetry.item("x: ", new IFunc<Object>() {
+                    public Object value() {
                         return formatPosition(position.x);
                     }
                 }),
@@ -606,7 +601,6 @@ public class AutonomousTeleOp extends SynchronousOpMode {
                         return formatPosition(position.z);
                     }
                 }));
-                */
     }
 
     String formatAngle(double angle)
