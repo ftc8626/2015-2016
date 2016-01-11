@@ -41,6 +41,7 @@ import org.swerverobotics.library.interfaces.II2cDeviceClientUser;
 import org.swerverobotics.library.interfaces.Position;
 import org.swerverobotics.library.interfaces.TeleOp;
 import org.swerverobotics.library.interfaces.Velocity;
+import org.umeprep.ftc.FTC8626.Speedy.Utility;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveMoveDirection;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveTurnDirection;
 
@@ -98,27 +99,13 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             // Set up our dashboard computations
             composeDashboard();
 
-            //telemetry.addData("Begin", "say something");
-
 //            DisplayTelemetryOnPhone();
 
             waitForStart();
 
+            makeSomeMoves();
 
-            //makeSomeMoves();
-            //makeSomeOtherMoves();
-            //DisplayTelemetryOnPhone();
-
-        while (opModeIsActive())
-        {
-            /*
-            if (this.updateGamepads()) {
-
-            }
-            */
-            telemetry.update();
-            this.idle();
-        }
+//            DisplayTelemetryOnPhone();
 
         //}
 /*        catch (Exception ex) {
@@ -131,31 +118,28 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     }
 
     private void DisplayTelemetryOnPhone() throws InterruptedException {
-        while (opModeIsActive())
-        {
             telemetry.update();
             idle();
-        }
     }
 
     private void initializeRobot() {
-        //telemetry.addData("Robot says","Let's ride.");
-
         InitializeMotors();
-
         InitializeSensors();
-
-    }
-
+  }
 
     private void InitializeSensors() {
 
         HardwareMap.DeviceMapping<I2cDevice> i2cDeviceList = hardwareMap.i2cDevice;
 
+        /*
+        int n = 0;
         for (I2cDevice item : i2cDeviceList) {
+            n = n + 1;
             String listDeviceName = item.getDeviceName();
-            telemetry.addData(listDeviceName, "I2C Device class: " + item.getClass());
+            telemetry.addData(listDeviceName, "I2C Device class: " + item.getDeviceName());
+            telemetry.addData("counter", n);
         }
+        */
 
 /*
         try {
@@ -176,7 +160,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             v_sensor_touch = null;
         }
 */
-        //InitializeSensorGyro();
+        InitializeSensorGyro();
     }
 
     private void InitializeSensorGyro() {
@@ -209,30 +193,61 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
 
     private void InitializeMotors() {
-        motorLeft = hardwareMap.dcMotor.get("Wheel 1");   // Get the name of the real motors
-        motorRight = hardwareMap.dcMotor.get("Wheel 2");  // Get the name of the real motors
-        motorLeft.setDirection(DcMotor.Direction.REVERSE);
+        // Configuration for hook in front
+        //motorLeft = hardwareMap.dcMotor.get("Wheel 1");   // Get the name of the real motors
+        //motorRight = hardwareMap.dcMotor.get("Wheel 2");  // Get the name of the real motors
+        //motorRight.setDirection(DcMotor.Direction.REVERSE);
+
+        //Configuration for button pusher in front
+        motorRight = hardwareMap.dcMotor.get("Wheel 1");   // Get the name of the real motors
+        motorLeft = hardwareMap.dcMotor.get("Wheel 2");  // Get the name of the real motors
+        motorRight.setDirection(DcMotor.Direction.REVERSE);
     }
 
     private void makeSomeMoves() throws InterruptedException {
 
-        telemetry.addData("makeSomeMoves", "Starting move forward");
+        telemetry.addData("makeSomeMoves", "Starting moves");
 
-            double duration = 1.2;
-            move(DriveMoveDirection.Forward, .3, duration);
-        //      telemetry.addData("makeSomeMoves", "After move forward");
+        double duration = 1;
 
-        //move(DriveMoveDirection.Backward, .3, duration);
+        move(DriveMoveDirection.Forward, .3, duration);
 
-        //telemetry.addData("makeSomeMoves3", "After move backward");
+        turn(DriveTurnDirection.Left, 90);
 
-        Thread.sleep(1000);
+        move(DriveMoveDirection.Backward, .2, .5);
+
+        turn(DriveTurnDirection.Left, 90);
+
+        move(DriveMoveDirection.Forward, .3, 2);
+
+        turn(DriveTurnDirection.Right, 180);
+
+        move(DriveMoveDirection.Forward, .2, 1);
+
+//        telemetry.addData("makeSomeMoves", "Before sleep");
+
+//        Thread.sleep(2000);
 
         //testTurn(0);
 
-        turn(DriveTurnDirection.Left, 180);
+//        telemetry.addData("makeSomeMoves", "After sleep, before turns");
+        //telemetry.update();
 
-        move(DriveMoveDirection.Forward, .3, 1);
+        //telemetry.update();
+
+        //Thread.sleep(1000);
+        //turn(DriveTurnDirection.Right, 90);
+
+        //telemetry.update();
+
+        //Thread.sleep(5000);
+
+        //turn(DriveTurnDirection.Right, 90);
+
+        //telemetry.addData("makeSomeMoves", "After right turn");
+        //telemetry.update();
+
+        //move(DriveMoveDirection.Forward, .3, 1);
 /*
         turn(DriveTurnDirection.Right, 135);
         move(DriveMoveDirection.Forward, .5, .7);
@@ -254,7 +269,6 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
             double duration = 2;
             move(DriveMoveDirection.Forward, .3,duration);
-
     }
 
     private void move(DriveMoveDirection robotMoveDirection, double movePower, double durationInSeconds) throws InterruptedException {
@@ -390,8 +404,90 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         turnSpecificTime(DriveTurnDirection.Right, 180, fifth);
     }
 */
-    private void turn(DriveTurnDirection direction, float moveAngle) throws InterruptedException {
-        turnSpecificTime(direction, moveAngle); //, turnDuration);
+    private void turn(DriveTurnDirection direction, float turnAngle) throws InterruptedException {
+
+        telemetry.addData("Turn","Entering turn method");
+        telemetry.update();
+
+        final double headingToleranceDegrees = 2;
+        final long delayToAllowTurn = 20;
+
+        double rightPower = .2;
+        double leftPower = .2;
+        double scaledPowerFactor = .3;
+
+        double initialHeading = getHeading();
+        double currentHeading = initialHeading;
+        double desiredHeading = 0;
+
+        turnAngle = Range.clip(turnAngle, 0, 180);
+
+        if (direction == DriveTurnDirection.Left)
+            desiredHeading = normalizeDegrees(initialHeading - turnAngle);
+        else
+            desiredHeading = normalizeDegrees(initialHeading + turnAngle);
+
+        double headingDifference = getHeadingDifference(currentHeading, desiredHeading);
+
+//        telemetry.addData("Turn", "Desired heading: " + desiredHeading);
+//        telemetry.addData("Turn", "Heading difference: " + headingDifference);
+//        telemetry.update();
+
+        while (headingDifference > headingToleranceDegrees) {
+
+            // if the heading is greater than desired turn left
+            //rightPower = rightPower * scaledPowerFactor;
+            //leftPower = leftPower * scaledPowerFactor;
+
+            telemetry.addData("Turn", "Initial heading: " + initialHeading);
+            telemetry.addData("Turn", "Desired heading: " + desiredHeading);
+            telemetry.addData("Turn", "Current heading: " + currentHeading);
+            telemetry.addData("Turn", "Heading difference: " + headingDifference);
+            telemetry.update();
+
+            double desiredMinusCurrent = desiredHeading - currentHeading;
+            if (desiredMinusCurrent > 180 || (desiredMinusCurrent < 0 && desiredMinusCurrent > -180)) {
+                telemetry.addData("Turn", "Turning left");
+                motorRight.setPower(rightPower);
+                motorLeft.setPower(0);
+            } else if ((desiredMinusCurrent   > 0 && desiredMinusCurrent <= 180) || desiredMinusCurrent <= -180) {
+                telemetry.addData("Turn", "Turning right");
+                // if the signal is to the right move right
+                motorRight.setPower(0);
+                motorLeft.setPower(leftPower);
+            } else {
+                telemetry.addData("Turn", "Off power");
+                motorRight.setPower(0);
+                motorLeft.setPower(0);
+            }
+
+            Thread.sleep(delayToAllowTurn);
+
+            currentHeading = getHeading();
+            headingDifference = getHeadingDifference(currentHeading, desiredHeading);
+        }
+
+        // stop the motors
+        motorRight.setPower(0);
+        motorLeft.setPower(0);
+//        turnSpecificTime(direction, moveAngle); //, turnDuration);
+
+        telemetry.update();
+    }
+
+    private double getHeadingDifference(double currentHeading, double desiredHeading) {
+
+        double absDiff = Math.abs(currentHeading - desiredHeading);
+
+        if (absDiff > 180) {
+            return (360 + currentHeading) - desiredHeading;
+        } else {
+            return absDiff;
+        }
+    }
+
+    private double getHeading() {
+        return Range.clip(v_sensor_gyro.getAngularOrientation().heading, 0, 360);
     }
 
     private void turnSpecificTime(DriveTurnDirection direction, float moveAngle)
@@ -435,19 +531,20 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     }
 */
 
-    /*
-    private void makeSomeMoves() throws InterruptedException
+
+    private void makeSomeSimpleMoves() throws InterruptedException
     {
         // write the values to the motors
-        double testPower = .5;
+        double testPower = .2;
         motorRight.setPower(testPower);
-        motorLeft.setPower(testPower);
+        //motorLeft.setPower(testPower);
+        motorLeft.setPower(0);
 
         telemetry.addData("Text", "AutonomousTeleOp");
         telemetry.addData("left power: ", motorLeft.getPower());
         telemetry.addData("right power: ", motorRight.getPower());
 
-        int moveDurationInSeconds = 2;
+        int moveDurationInSeconds = 1;
         int moveDuration = moveDurationInSeconds * 1000;  //# of Seconds x 1000 -> Sleep needs milliseconds, 2 seconds = 2000 milliseconds
         Thread.sleep(moveDuration);   //Thread.Sleep may experience an error while running so it can "throw an exception"
 
@@ -460,7 +557,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         telemetry.addData("right power: ", motorRight.getPower());
 
     }
-    */
+
 
 
     /**
@@ -491,22 +588,23 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     {
         // The default dashboard update rate is a little too slow for our taste here, so we update faster
         telemetry.setUpdateIntervalMs(200);
-
+/*
         // At the beginning of each telemetry update, grab a bunch of data
         // from the IMU that we will then display in separate lines.
-        telemetry.addAction(new Runnable() { @Override public void run()
-        {
-            // Acquiring the angles is relatively expensive; we don't want
-            // to do that in each of the three items that need that info, as that's
-            // three times the necessary expense.
-            angles     = v_sensor_gyro.getAngularOrientation();
-            position   = v_sensor_gyro.getPosition();
+        telemetry.addAction(new Runnable() {
+            @Override
+            public void run() {
+                // Acquiring the angles is relatively expensive; we don't want
+                // to do that in each of the three items that need that info, as that's
+                // three times the necessary expense.
+                angles = v_sensor_gyro.getAngularOrientation();
+                position = v_sensor_gyro.getPosition();
 
-            // The rest of this is pretty cheap to acquire, but we may as well do it
-            // all while we're gathering the above.
-            loopCycles = getLoopCount();
-            i2cCycles  = ((II2cDeviceClientUser) v_sensor_gyro).getI2cDeviceClient().getI2cCycleCount();
-            ms         = elapsed.time() * 1000.0;
+                // The rest of this is pretty cheap to acquire, but we may as well do it
+                // all while we're gathering the above.
+                loopCycles = getLoopCount();
+                i2cCycles = ((II2cDeviceClientUser) v_sensor_gyro).getI2cDeviceClient().getI2cCycleCount();
+                ms         = elapsed.time() * 1000.0;
         }
         });
         
@@ -529,15 +627,13 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         telemetry.addLine(
                 telemetry.item("loop rate: ", new IFunc<Object>()
                 {
-                    public Object value()
-                    {
+                    public Object value() {
                         return formatRate(ms / loopCycles);
                     }
                 }),
                 telemetry.item("i2c cycle rate: ", new IFunc<Object>()
                 {
-                    public Object value()
-                    {
+                    public Object value() {
                         return formatRate(ms / i2cCycles);
                     }
                 }));
@@ -601,6 +697,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
                         return formatPosition(position.z);
                     }
                 }));
+*/
     }
 
     String formatAngle(double angle)
@@ -633,8 +730,8 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     /** Normalize the angle into the range [-180,180) */
     double normalizeDegrees(double degrees)
     {
-        while (degrees >= 180.0) degrees -= 360.0;
-        while (degrees < -180.0) degrees += 360.0;
+        if (degrees >= 360.0) degrees -= 360.0;
+        if (degrees < 0.0) degrees += 360.0;
         return degrees;
     }
     double degreesFromRadians(double radians)

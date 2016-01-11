@@ -39,6 +39,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 import org.swerverobotics.library.interfaces.TeleOp;
+import org.umeprep.ftc.FTC8626.Speedy.Utility;
 
 /**
  * TankDrive Mode
@@ -57,6 +58,9 @@ public class TankDrive extends OpMode {
     //DcMotor motorBack;
     DcMotor motorHook;
 
+    double driveMotorPowerFactor = .5;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
+    double hookMotorPowerFactor = .5;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
+
     //DcMotor motorRightKick;
     //DcMotor motorLeftKick;
 
@@ -67,12 +71,12 @@ public class TankDrive extends OpMode {
 
     // position of the arm servo.
     double HOOK_MIN_POSITION = 0;
-    double HOOK_MAX_POSITION = .6;
+    double HOOK_MAX_POSITION = .7;
+    double HOOK_INITIAL_POSITION = 0;
 
-    double HOOK_INITIAL_POSITION = .2;
     double tapeMeasureUpDownPosition = HOOK_INITIAL_POSITION;
     // amount to change the tape measure up down servo position by
-    double tapeMeasureUpDownDelta = 0.0004;
+    double tapeMeasureUpDownDelta = 0.0008;
 
     //double dumpClimbersPosition;
 
@@ -162,9 +166,15 @@ public class TankDrive extends OpMode {
         //clip the right/left values so that the values never exceed +/- 1
         right = Range.clip(right, -1, 1);
         left = Range.clip(left, -1, 1);
+
+        // scale the joystick value to make it easier to control
+        // the robot more precisely at slower speeds.
+        right = (float) Utility.scaleInput(right);
+        left =  (float) Utility.scaleInput(left);
+
         // write the values to the motors
-        motorRight.setPower(right * .5);
-        motorLeft.setPower(left * .5);
+        motorRight.setPower(right);
+        motorLeft.setPower(left);
         //
         //
         //
@@ -181,10 +191,10 @@ public class TankDrive extends OpMode {
 
         //set the hook motor power
         if (gamepad1.dpad_up) {
-            motorHook.setPower(hookOutSpeed);
+            motorHook.setPower(hookOutSpeed * hookMotorPowerFactor);
         }
         else if (gamepad1.dpad_down) {
-            motorHook.setPower(hookInSpeed);
+            motorHook.setPower(hookInSpeed * hookMotorPowerFactor);
         }
         else {
             motorHook.setPower(0);
@@ -214,9 +224,10 @@ public class TankDrive extends OpMode {
             tapeMeasureUpDownPosition -= tapeMeasureUpDownDelta;
         }
         else if (gamepad1.a) {
-            tapeMeasureUpDownPosition = .2;
+            tapeMeasureUpDownPosition = HOOK_INITIAL_POSITION;
         }
 
+        /*
         if (gamepad2.y) {
             tapeMeasureUpDownPosition += tapeMeasureUpDownDelta;
         }
@@ -226,6 +237,8 @@ public class TankDrive extends OpMode {
         else if (gamepad2.a) {
             tapeMeasureUpDownPosition = .2;
         }
+        */
+
         //clip the hook speed values so that the values never go below 0 or above .6
         tapeMeasureUpDownPosition = Range.clip(tapeMeasureUpDownPosition, HOOK_MIN_POSITION, HOOK_MAX_POSITION);
         tapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
@@ -246,15 +259,6 @@ public class TankDrive extends OpMode {
         ////}
 
 
-        // scale the joystick value to make it easier to control
-        // the robot more precisely at slower speeds.
-        ////right = (float)scaleInput(right);
-        ////left =  (float)scaleInput(left);
-
-
-        //motorRightKick.setPower(right);
-        //motorLeftKick.setPower(left);
-
         // Set servos
 
         // clip the position values so that they never exceed their allowed range.
@@ -269,7 +273,7 @@ public class TankDrive extends OpMode {
 		 * will return a null value. The legacy NXT-compatible motor controllers
 		 * are currently write only.
 		 */
-        telemetry.addData("Text", "*** Robot Data***");
+       // telemetry.addData("Text", "*** Robot Data***");
         telemetry.addData("left tgt pwr",  "left  pwr: " + String.format("%.2f", left));
         telemetry.addData("right tgt pwr", "right pwr: " + String.format("%.2f", right));
         telemetry.addData("Robot says","Long live the King.");
@@ -284,40 +288,4 @@ public class TankDrive extends OpMode {
     public void stop() {
 
     }
-
-
-    /*
-     * This method scales the joystick input so for low joystick values, the
-     * scaled value is less than linear.  This is to make it easier to drive
-     * the robot more precisely at slower speeds.
-     */
-    double scaleInput(double dVal)  {
-        double[] scaleArray = { 0.0, 0.05, 0.09, 0.10, 0.12, 0.15, 0.18, 0.24,
-                0.30, 0.36, 0.43, 0.50, 0.60, 0.72, 0.85, 1.00, 1.00 };
-
-        // get the corresponding index for the scaleInput array.
-        int index = (int) (dVal * 16.0);
-
-        // index should be positive.
-        if (index < 0) {
-            index = -index;
-        }
-
-        // index cannot exceed size of array minus 1.
-        if (index > 16) {
-            index = 16;
-        }
-
-        // get value from the array.
-        double dScale = 0.0;
-        if (dVal < 0) {
-            dScale = -scaleArray[index];
-        } else {
-            dScale = scaleArray[index];
-        }
-
-        // return scaled value.
-        return dScale;
-    }
-
 }
