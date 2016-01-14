@@ -55,7 +55,6 @@ public class TankDrive extends OpMode {
 
     DcMotor motorRight;
     DcMotor motorLeft;
-    //DcMotor motorBack;
     DcMotor motorHook;
 
     double driveMotorPowerFactor = .5;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
@@ -66,7 +65,8 @@ public class TankDrive extends OpMode {
 
     ////anything with four slashes is part of the servo mechanics
     Servo tapeMeasureUpDown;
-    ////Servo dumpClimbers;
+    private Servo servoClimberDumper;
+    private Servo servoButtonPusher;
 
 
     // position of the arm servo.
@@ -121,9 +121,11 @@ public class TankDrive extends OpMode {
 
         // Servo code
         tapeMeasureUpDown = hardwareMap.servo.get("Hook Control");
+        servoClimberDumper = hardwareMap.servo.get("Climber Dumper");
+        servoButtonPusher = hardwareMap.servo.get("Button Pusher");
 
         try {
-            setIncline();
+            setServoPositions();
         }
         catch (InterruptedException ex)
         {}
@@ -139,9 +141,11 @@ public class TankDrive extends OpMode {
         telemetry.addData("Robot says","Hi");
     }
 
-    private void setIncline() throws InterruptedException {
+    private void setServoPositions() throws InterruptedException {
 
         tapeMeasureUpDown.setPosition(HOOK_INITIAL_POSITION);
+        servoClimberDumper.setPosition(0);
+        servoButtonPusher.setPosition(0);
     }
 
     /*

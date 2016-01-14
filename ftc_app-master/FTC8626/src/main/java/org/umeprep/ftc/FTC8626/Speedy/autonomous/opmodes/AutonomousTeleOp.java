@@ -47,6 +47,7 @@ import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveTurnDirection;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.I2cDevice;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 
@@ -73,8 +74,15 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     double ms;
     private DcMotor motorRight;
     private DcMotor motorLeft;
-    private TouchSensor v_sensor_touch;
+    private DcMotor motorHook;
+    private Servo tapeMeasureUpDown;
+    private Servo servoClimberDumper;
+    private Servo servoButtonPusher;
+
+
+    //    private TouchSensor v_sensor_touch;
     private OpticalDistanceSensor v_sensor_ods;
+
     private IBNO055IMU v_sensor_gyro;
     private ElapsedTime elapsed    = new ElapsedTime();
     private IBNO055IMU.Parameters   parameters = new IBNO055IMU.Parameters();
@@ -124,6 +132,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
     private void initializeRobot() {
         InitializeMotors();
+        InitializeServos();
         InitializeSensors();
   }
 
@@ -150,16 +159,16 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
             v_sensor_touch = null;
         }
-
+*/
         try {
             v_sensor_ods = hardwareMap.opticalDistanceSensor.get("ODS");
         } catch (Exception p_exception) {
            // m_warning_message("ODS");
             //DbgLog.msg (p_exception.getLocalizedMessage ());
 
-            v_sensor_touch = null;
+            v_sensor_ods = null;
         }
-*/
+
         InitializeSensorGyro();
     }
 
@@ -188,7 +197,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         telemetry.addData("Robot says", "IMU temp: " + temp);
 
         boolean isGyroCalibrated = v_sensor_gyro.isGyroCalibrated();
-        telemetry.addData("gyro","calibrated: " + isGyroCalibrated);
+        telemetry.addData("gyro", "calibrated: " + isGyroCalibrated);
     }
 
 
@@ -202,20 +211,62 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         motorRight = hardwareMap.dcMotor.get("Wheel 1");   // Get the name of the real motors
         motorLeft = hardwareMap.dcMotor.get("Wheel 2");  // Get the name of the real motors
         motorRight.setDirection(DcMotor.Direction.REVERSE);
+
+        motorHook = hardwareMap.dcMotor.get("Hook");
+        motorHook.setDirection(DcMotor.Direction.REVERSE);
+    }
+
+    private void InitializeServos() {
+        servoClimberDumper = hardwareMap.servo.get("Climber Dumper");
+        servoButtonPusher = hardwareMap.servo.get("Button Pusher");
+
+        //servoClimberDumper.setPosition(.7);
+        //servoButtonPusher.setPosition(.7);
+
     }
 
     private void makeSomeMoves() throws InterruptedException {
 
+        double climberDumperPosition = 0;
+        double buttonPusherPosition = 0;
+
+        servoClimberDumper.setPosition(climberDumperPosition);
+        Thread.sleep(1000);
+
+        //climberDumperPosition += .2;
+        //servoClimberDumper.setPosition(.7);
+        //Thread.sleep(1000);
+
+        servoButtonPusher.setPosition(buttonPusherPosition);
+        Thread.sleep(1000);
+
+        //buttonPusherPosition += .2;
+        //servoButtonPusher.setPosition(buttonPusherPosition);
+        //Thread.sleep(1000);
+/*
         telemetry.addData("makeSomeMoves", "Starting moves");
 
-        double duration = 1;
+        double duration = 1.5;
+        double power = .3;
 
-        move(DriveMoveDirection.Forward, .3, duration);
+        turn(DriveTurnDirection.Right, 90);
 
-        turn(DriveTurnDirection.Left, 90);
+        move(DriveMoveDirection.Forward, power, duration);
+*/
+        for (int x=0; x < 11; x++) {
+            buttonPusherPosition += .1;
+            servoButtonPusher.setPosition(buttonPusherPosition);
+            Thread.sleep(1000);
 
-        move(DriveMoveDirection.Backward, .2, .5);
+            climberDumperPosition += .1;
+            servoClimberDumper.setPosition(climberDumperPosition);
+            Thread.sleep(1000);
 
+            //turn(DriveTurnDirection.Left, 90);
+
+            //move(DriveMoveDirection.Forward, power, duration);}
+        }
+        /*
         turn(DriveTurnDirection.Left, 90);
 
         move(DriveMoveDirection.Forward, .3, 2);
@@ -223,7 +274,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         turn(DriveTurnDirection.Right, 180);
 
         move(DriveMoveDirection.Forward, .2, 1);
-
+*/
 //        telemetry.addData("makeSomeMoves", "Before sleep");
 
 //        Thread.sleep(2000);
@@ -263,14 +314,14 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         */
     }
 
-    private void makeSomeOtherMoves() throws InterruptedException {
+/*    private void makeSomeOtherMoves() throws InterruptedException {
 
         telemetry.addData("makeSomeOtherMoves", "Moving Forward");
 
             double duration = 2;
             move(DriveMoveDirection.Forward, .3,duration);
     }
-
+*/
     private void move(DriveMoveDirection robotMoveDirection, double movePower, double durationInSeconds) throws InterruptedException {
 
         telemetry.addData("move1", "After set power");
@@ -286,8 +337,8 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
         continueAction(durationInSeconds);
 
-        telemetry.addData("move2", "Sleep 1/4 second");
-        Thread.sleep(250);
+        //telemetry.addData("move2", "Sleep 1/4 second");
+        //Thread.sleep(250);
     }
 
     private void continueAction(double durationInSeconds) throws InterruptedException {
@@ -531,7 +582,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     }
 */
 
-
+/*
     private void makeSomeSimpleMoves() throws InterruptedException
     {
         // write the values to the motors
@@ -555,9 +606,8 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         telemetry.addData("Text", "AutonomousTeleOp");
         telemetry.addData("left power: ", motorLeft.getPower());
         telemetry.addData("right power: ", motorRight.getPower());
-
     }
-
+*/
 
 
     /**
