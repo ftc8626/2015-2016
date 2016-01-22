@@ -57,8 +57,8 @@ public class TankDrive extends OpMode {
     DcMotor motorLeft;
     DcMotor motorHook;
 
-    double driveMotorPowerFactor = .5;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
-    double hookMotorPowerFactor = .5;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
+    double driveMotorPowerFactor = .2;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
+    double hookMotorPowerFactor = 1;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
 
     //DcMotor motorRightKick;
     //DcMotor motorLeftKick;
@@ -207,7 +207,7 @@ public class TankDrive extends OpMode {
         if (gamepad2.dpad_up) {
             motorHook.setPower(hookOutSpeed);
         }
-        else if (gamepad2.dpad_down) {
+        if (gamepad2.dpad_down) {
             motorHook.setPower(hookInSpeed);
         }
         else {
@@ -227,7 +227,8 @@ public class TankDrive extends OpMode {
         else if (gamepad1.b) {
             tapeMeasureUpDownPosition -= tapeMeasureUpDownDelta;
         }
-        else if (gamepad1.a) {
+
+        if (gamepad1.right_bumper && gamepad1.left_bumper){
             tapeMeasureUpDownPosition = HOOK_INITIAL_POSITION;
         }
 
@@ -235,10 +236,10 @@ public class TankDrive extends OpMode {
         if (gamepad2.y) {
             tapeMeasureUpDownPosition += tapeMeasureUpDownDelta;
         }
-        else if (gamepad2.b) {
+        if (gamepad2.b) {
             tapeMeasureUpDownPosition -= tapeMeasureUpDownDelta;
         }
-        else if (gamepad2.a) {
+        if (gamepad2.a) {
             tapeMeasureUpDownPosition = .2;
         }
         */

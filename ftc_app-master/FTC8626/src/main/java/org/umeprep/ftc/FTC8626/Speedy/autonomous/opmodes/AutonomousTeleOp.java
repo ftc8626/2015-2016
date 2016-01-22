@@ -42,9 +42,15 @@ import org.swerverobotics.library.interfaces.Position;
 import org.swerverobotics.library.interfaces.TeleOp;
 import org.swerverobotics.library.interfaces.Velocity;
 import org.umeprep.ftc.FTC8626.Speedy.Utility;
+import org.umeprep.ftc.FTC8626.Speedy.autonomous.Category;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveMoveDirection;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveTurnDirection;
+import org.umeprep.ftc.FTC8626.Speedy.autonomous.NumberCategory;
+import org.umeprep.ftc.FTC8626.Speedy.autonomous.OptionMenu;
+import org.umeprep.ftc.FTC8626.Speedy.autonomous.SingleSelectCategory;
+import org.umeprep.ftc.FTC8626.Speedy.autonomous.TextCategory;
 
+import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.I2cDevice;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -62,8 +68,10 @@ import com.qualcomm.robotcore.util.Range;
 @TeleOp(name="AutonomousTeleOp", group="FTC8626")
 public class AutonomousTeleOp extends SynchronousOpMode {
 
+    public final int ANDYMARK_MOTORS_TICKS_PER_REVOLUTION = 1120;
     public boolean v_warning_generated = false;
     public String v_warning_message;
+
     // Here we have state we use for updating the dashboard. The first of these is important
     // to read only once per update, as its acquisition is expensive. The remainder, though,
     // could probably be read once per item, at only a small loss in display accuracy.
@@ -72,69 +80,86 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     int loopCycles;
     int i2cCycles;
     double ms;
+
+    // Motor variables
     private DcMotor motorRight;
     private DcMotor motorLeft;
     private DcMotor motorHook;
+
+    // Servo variables
     private Servo tapeMeasureUpDown;
     private Servo servoClimberDumper;
     private Servo servoButtonPusher;
 
+    // Menu variables
+    private OptionMenu menu;
 
+    //
+    // Sensor variables
+    //
     //    private TouchSensor v_sensor_touch;
     private OpticalDistanceSensor v_sensor_ods;
 
+        // Gyro variables
     private IBNO055IMU v_sensor_gyro;
-    private ElapsedTime elapsed    = new ElapsedTime();
-    private IBNO055IMU.Parameters   parameters = new IBNO055IMU.Parameters();
+    private ElapsedTime elapsed = new ElapsedTime();
+    private IBNO055IMU.Parameters parameters = new IBNO055IMU.Parameters();
 
-    //Double turnDuration = 1.085;
-
-    /**
-     * Constructor
-     */
-/*
-    public AutonomousTeleOp() {
-        telemetry = new TelemetryDashboardAndLog();
-        telemetry.addData("Robot habla", "hola");
-    }
-*/
     @Override
     public void main() throws InterruptedException {
 
-        //try {
-            initializeRobot();
+        initializeRobot();
+        composeDashboard();
 
-            // Set up our dashboard computations
-            composeDashboard();
+        waitForStart();
 
-//            DisplayTelemetryOnPhone();
-
-            waitForStart();
-
-            makeSomeMoves();
-
-//            DisplayTelemetryOnPhone();
-
-        //}
-/*        catch (Exception ex) {
-            telemetry.addData("Error", "Error: " + ex.getMessage());
-        }
-        finally {
-            DisplayTelemetryOnPhone();
-        }
-*/
+        makeSomeMoves();
     }
 
     private void DisplayTelemetryOnPhone() throws InterruptedException {
-            telemetry.update();
-            idle();
+        telemetry.update();
+        idle();
     }
 
-    private void initializeRobot() {
+    private void initializeRobot() throws InterruptedException {
+        InitializeMenu();
         InitializeMotors();
         InitializeServos();
         InitializeSensors();
-  }
+    }
+
+    private void InitializeMenu() throws InterruptedException {
+
+        // This menu code was shared with us by team 4290 lasarobotics (thanks!)
+        OptionMenu.Builder builder = new OptionMenu.Builder(hardwareMap.appContext);
+
+        //Setup a SingleSelectCategory
+        SingleSelectCategory alliance = new SingleSelectCategory("alliance");
+        alliance.addOption("Red");
+        alliance.addOption("Blue");
+        builder.addCategory(alliance);
+
+        //Setup a SingleSelectCategory
+        SingleSelectCategory startPosition = new SingleSelectCategory("startposition");
+        startPosition.addOption("Left");
+        startPosition.addOption("Right");
+        builder.addCategory(startPosition);
+/*
+        //Setup a TextCategory
+        TextCategory robotName = new TextCategory("Speedy");
+        builder.addCategory(robotName);
+
+        //Setup a NumberCategory
+        NumberCategory time = new NumberCategory("Time");
+        builder.addCategory(time);
+*/
+        //Create menu
+        menu = builder.create();
+        //Display menu
+        menu.show();
+
+//        DisplayTelemetryOnPhone();
+    }
 
     private void InitializeSensors() {
 
@@ -169,7 +194,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             v_sensor_ods = null;
         }
 
-        InitializeSensorGyro();
+        //InitializeSensorGyro();
     }
 
     private void InitializeSensorGyro() {
@@ -200,7 +225,6 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         telemetry.addData("gyro", "calibrated: " + isGyroCalibrated);
     }
 
-
     private void InitializeMotors() {
         // Configuration for hook in front
         //motorLeft = hardwareMap.dcMotor.get("Wheel 1");   // Get the name of the real motors
@@ -222,37 +246,62 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
         //servoClimberDumper.setPosition(.7);
         //servoButtonPusher.setPosition(.7);
-
     }
 
     private void makeSomeMoves() throws InterruptedException {
+        String alliance = "default";
+        String startingPosition = "default";
+
+        for (Category c : menu.getCategories()) {
+            //telemetry.addData(c.getName(), "categoryName");
+            String categoryName = c.getName();
+            if  (c.getName() == "alliance")
+                alliance = menu.selectedOption(categoryName);
+            else
+                startingPosition = menu.selectedOption(categoryName);
+            //telemetry.addData(categoryName, menu.selectedOption(categoryName));
+            //telemetry.addData(menu.selectedOption(categoryName), "option");
+        }
+
+        telemetry.addData("alliance", alliance);
+        telemetry.addData("startingPosition", startingPosition);
+
+/*
+        for (Category c : menu.getCategories())
+            telemetry.addData(c.getName(), menu.selectedOption(c.getName()));
+*/
+        telemetry.update();
+
+        telemetry.addData("makeSomeMoves", "Starting moves");
 
         double climberDumperPosition = 0;
         double buttonPusherPosition = 0;
 
-        servoClimberDumper.setPosition(climberDumperPosition);
-        Thread.sleep(1000);
+       // servoClimberDumper.setPosition(climberDumperPosition);
+       // servoButtonPusher.setPosition(buttonPusherPosition);
+       // Thread.sleep(1000);
 
-        //climberDumperPosition += .2;
-        //servoClimberDumper.setPosition(.7);
-        //Thread.sleep(1000);
-
-        servoButtonPusher.setPosition(buttonPusherPosition);
-        Thread.sleep(1000);
-
-        //buttonPusherPosition += .2;
-        //servoButtonPusher.setPosition(buttonPusherPosition);
-        //Thread.sleep(1000);
-/*
-        telemetry.addData("makeSomeMoves", "Starting moves");
-
-        double duration = 1.5;
-        double power = .3;
-
-        turn(DriveTurnDirection.Right, 90);
-
-        move(DriveMoveDirection.Forward, power, duration);
+       /* int distanceInInches = 96;
+        double power = .5;
 */
+        telemetry.update();
+//        turn(DriveTurnDirection.Right, 90);
+        move(DriveMoveDirection.Forward, .5, 96);
+
+        if (alliance == "Red") {
+            turn(DriveTurnDirection.Left, 90);
+        }
+        else {
+            turn(DriveTurnDirection.Right, 90);
+        }
+
+        move(DriveMoveDirection.Backward,.4, 8); /* until the ODS says we're close to the wall */ 
+        move(DriveMoveDirection.Backward, .2, 6);
+
+
+
+
+        /*
         for (int x=0; x < 11; x++) {
             buttonPusherPosition += .1;
             servoButtonPusher.setPosition(buttonPusherPosition);
@@ -263,49 +312,14 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             Thread.sleep(1000);
 
             //turn(DriveTurnDirection.Left, 90);
-
             //move(DriveMoveDirection.Forward, power, duration);}
         }
-        /*
-        turn(DriveTurnDirection.Left, 90);
-
-        move(DriveMoveDirection.Forward, .3, 2);
-
-        turn(DriveTurnDirection.Right, 180);
-
-        move(DriveMoveDirection.Forward, .2, 1);
-*/
-//        telemetry.addData("makeSomeMoves", "Before sleep");
-
-//        Thread.sleep(2000);
-
-        //testTurn(0);
-
-//        telemetry.addData("makeSomeMoves", "After sleep, before turns");
-        //telemetry.update();
-
-        //telemetry.update();
-
-        //Thread.sleep(1000);
-        //turn(DriveTurnDirection.Right, 90);
-
-        //telemetry.update();
-
-        //Thread.sleep(5000);
-
-        //turn(DriveTurnDirection.Right, 90);
-
-        //telemetry.addData("makeSomeMoves", "After right turn");
-        //telemetry.update();
-
-        //move(DriveMoveDirection.Forward, .3, 1);
+        */
 /*
-        turn(DriveTurnDirection.Right, 135);
-        move(DriveMoveDirection.Forward, .5, .7);
-
-        move(DriveMoveDirection.Backward, .2, 1.5);
         turn(DriveTurnDirection.Left, 90);
-        move(DriveMoveDirection.Forward, .8, .5);
+        move(DriveMoveDirection.Forward, .3, 2);
+        turn(DriveTurnDirection.Right, 180);
+        move(DriveMoveDirection.Forward, .2, 1);
 */
 
         /*
@@ -314,17 +328,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         */
     }
 
-/*    private void makeSomeOtherMoves() throws InterruptedException {
-
-        telemetry.addData("makeSomeOtherMoves", "Moving Forward");
-
-            double duration = 2;
-            move(DriveMoveDirection.Forward, .3,duration);
-    }
-*/
-    private void move(DriveMoveDirection robotMoveDirection, double movePower, double durationInSeconds) throws InterruptedException {
-
-        telemetry.addData("move1", "After set power");
+    private void move(DriveMoveDirection robotMoveDirection, double movePower, int distanceInInches) throws InterruptedException {
 
         if (robotMoveDirection == DriveMoveDirection.Forward) {
             telemetry.addData("Direction", "equals Forward");
@@ -332,18 +336,37 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             telemetry.addData("Direction", "equals Backward");
             movePower = -movePower;
         }
+        telemetry.update();
 
-        setMotorPower(movePower);
+        // Zero out the motor encoders
+        motorRight.setMode(DcMotorController.RunMode.RESET_ENCODERS);
+        motorLeft.setMode(DcMotorController.RunMode.RESET_ENCODERS);
 
-        continueAction(durationInSeconds);
+        double distanceInRevolutions = distanceInInches / 12.5664;
+        int distanceInTicks = (int)Math.round(distanceInRevolutions * ANDYMARK_MOTORS_TICKS_PER_REVOLUTION);
 
-        //telemetry.addData("move2", "Sleep 1/4 second");
-        //Thread.sleep(250);
+        telemetry.addData("continueAction", "DistanceInRevs: " + distanceInRevolutions);
+        telemetry.addData("continueAction", "DistanceInTicks: " + distanceInTicks);
+        telemetry.update();
+
+        motorRight.setTargetPosition(distanceInTicks);
+        motorLeft.setTargetPosition(distanceInTicks);
+
+        motorRight.setMode(DcMotorController.RunMode.RUN_TO_POSITION);
+        motorLeft.setMode(DcMotorController.RunMode.RUN_TO_POSITION);
+
+        while (Math.abs(motorRight.getCurrentPosition() - distanceInTicks) > 10 ||
+                Math.abs(motorLeft.getCurrentPosition() - distanceInTicks) > 10)  {
+            setMotorPower(movePower);
+        }
+
+        stopRobot();
     }
 
+/*
     private void continueAction(double durationInSeconds) throws InterruptedException {
         telemetry.addData("doAction1", "Duration secs: " + durationInSeconds);
-
+                  O=={:::::::::::::::>
         long durationInMilliseconds = (long) (durationInSeconds * 1000);
         Thread.sleep(durationInMilliseconds);   //Thread.Sleep may experience an error while running so it can "throw an exception"
 
@@ -353,7 +376,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
         Thread.sleep(1000);
     }
-
+*/
     private void setMotorPower(double power) {
         setMotorPower(power, power);
     }
@@ -378,10 +401,10 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     }
 
     /*
-    private void move(DriveMoveDirection robotDirection, double movePower, double durationInSeconds, boolean floatStop) {
+    private void move(DriveMoveDirection robotDirection, double movePower, double distanceInInches, boolean floatStop) {
 
         setDirectedMotorPower(robotDirection, movePower);
-        continueAction(durationInSeconds);
+        continueAction(distanceInInches);
 
         if (floatStop) {
             floatRobot();
@@ -437,22 +460,6 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         telemetry.addData("Floating1", "Starting float");
         motorRight.setPowerFloat();
         motorLeft.setPowerFloat();
-    }
-*/
-/*
-    private void testTurn(double seed) throws InterruptedException {
-
-        double first = seed + .2;
-        double second = seed + .4;
-        double third = seed + .6;
-        double fourth = seed + .8;
-        double fifth = seed + 1;
-
-        turnSpecificTime(DriveTurnDirection.Right, 180, first);
-        turnSpecificTime(DriveTurnDirection.Right, 180, second);
-        turnSpecificTime(DriveTurnDirection.Right, 180, third);
-        turnSpecificTime(DriveTurnDirection.Right, 180, fourth);
-        turnSpecificTime(DriveTurnDirection.Right, 180, fifth);
     }
 */
     private void turn(DriveTurnDirection direction, float turnAngle) throws InterruptedException {
@@ -541,6 +548,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         return Range.clip(v_sensor_gyro.getAngularOrientation().heading, 0, 360);
     }
 
+/*
     private void turnSpecificTime(DriveTurnDirection direction, float moveAngle)
     //, double duration)
             throws InterruptedException {
@@ -567,18 +575,6 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         // write the values to the motors
         setMotorPower(rightPower, leftPower);
         continueAction(duration);
-    }
-
-/*
-    private void testTurn(double seed) throws InterruptedException {
-        //double interval = 1;
-
-        for (int diff = 1; diff <= 5; diff++) {
-            double turnAmount = seed + turnDuration; // interval * diff;
-            turnSpecificTime(DriveTurnDirection.Right, 180, turnAmount);
-            telemetry.addData("testTurn", "Turn amount: " + turnAmount);
-            Thread.sleep(1000);
-        }
     }
 */
 
