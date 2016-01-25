@@ -58,7 +58,7 @@ public class TankDrive extends OpMode {
     DcMotor motorHook;
 
     double driveMotorPowerFactor = .2;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
-    double hookMotorPowerFactor = 1;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
+    double hookMotorPowerFactor = .6;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
 
     //DcMotor motorRightKick;
     //DcMotor motorLeftKick;
@@ -66,7 +66,7 @@ public class TankDrive extends OpMode {
     ////anything with four slashes is part of the servo mechanics
     Servo tapeMeasureUpDown;
     private Servo servoClimberDumper;
-    private Servo servoButtonPusher;
+    //private Servo servoButtonPusher;
 
 
     // position of the arm servo.
@@ -122,7 +122,7 @@ public class TankDrive extends OpMode {
         // Servo code
         tapeMeasureUpDown = hardwareMap.servo.get("Hook Control");
         servoClimberDumper = hardwareMap.servo.get("Climber Dumper");
-        servoButtonPusher = hardwareMap.servo.get("Button Pusher");
+        //servoButtonPusher = hardwareMap.servo.get("Button Pusher");
 
         try {
             setServoPositions();
@@ -145,7 +145,7 @@ public class TankDrive extends OpMode {
 
         tapeMeasureUpDown.setPosition(HOOK_INITIAL_POSITION);
         servoClimberDumper.setPosition(0);
-        servoButtonPusher.setPosition(0);
+        //servoButtonPusher.setPosition(0);
     }
 
     /*
@@ -186,8 +186,8 @@ public class TankDrive extends OpMode {
         //*********
         // Extend or retract the hook
         //*********
-        double hookOutSpeed = .2;
-        double hookInSpeed = -.2;
+        double hookOutSpeed = 1;
+        double hookInSpeed = -.5;
 
         //clip the hook speed values so that the values never exceed +/- 1
         hookOutSpeed = Range.clip(hookOutSpeed, -1, 1);
@@ -199,6 +199,8 @@ public class TankDrive extends OpMode {
         }
         else if (gamepad1.dpad_down) {
             motorHook.setPower(hookInSpeed * hookMotorPowerFactor);
+            motorRight.setPowerFloat();
+            motorLeft.setPowerFloat();
         }
         else {
             motorHook.setPower(0);
