@@ -39,6 +39,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 import org.swerverobotics.library.interfaces.TeleOp;
+import org.umeprep.ftc.FTC8626.Speedy.DebrisPusherDirection;
 import org.umeprep.ftc.FTC8626.Speedy.Utility;
 
 /**
@@ -57,14 +58,18 @@ public class TankDrive extends OpMode {
     DcMotor motorLeft;
     DcMotor motorHook;
 
+    private Servo servoDebrisPusherRight;
+    private Servo servoDebrisPusherLeft;
+    private Servo servoDebrisPusherMiddle;
+
     double driveMotorPowerFactor = .2;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
-    double hookMotorPowerFactor = .6;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
+    double hookMotorPowerFactor = .8;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
 
     //DcMotor motorRightKick;
     //DcMotor motorLeftKick;
 
     ////anything with four slashes is part of the servo mechanics
-    Servo tapeMeasureUpDown;
+    private Servo servoTapeMeasureUpDown;
     private Servo servoClimberDumper;
     //private Servo servoButtonPusher;
 
@@ -96,7 +101,6 @@ public class TankDrive extends OpMode {
     @Override
     public void init()  {
 
-
 		/*
 		 * Use the hardwareMap to get the dc motors and servos by name. Note
 		 * that the names of the devices must match the names used when you
@@ -109,20 +113,21 @@ public class TankDrive extends OpMode {
 		 *   "motor_1" is on the right side of the bot.
 		 *   "motor_2" is on the left side of the bot and reversed.
 		 */
-        //motorRightKick = hardwareMap.dcMotor.get("motor_4");
-        //motorLeftKick = hardwareMap.dcMotor.get("motor_3");
-        motorLeft = hardwareMap.dcMotor.get("Wheel 1");
-        motorRight = hardwareMap.dcMotor.get("Wheel 2");
-        //motorBack = hardwareMap.dcMotor.get("motor_3");
+        motorLeft = hardwareMap.dcMotor.get("Wheel 2");
+        motorRight = hardwareMap.dcMotor.get("Wheel 1");
         motorLeft.setDirection(DcMotor.Direction.REVERSE);
 
         motorHook = hardwareMap.dcMotor.get("Hook");
         motorHook.setDirection(DcMotor.Direction.REVERSE);
 
         // Servo code
-        tapeMeasureUpDown = hardwareMap.servo.get("Hook Control");
-        servoClimberDumper = hardwareMap.servo.get("Climber Dumper");
+        servoTapeMeasureUpDown = hardwareMap.servo.get("Hook Control");
+      //  servoClimberDumper = hardwareMap.servo.get("Climber Dumper");
         //servoButtonPusher = hardwareMap.servo.get("Button Pusher");
+
+        servoDebrisPusherRight = hardwareMap.servo.get("Debris Pusher Right");
+        servoDebrisPusherLeft = hardwareMap.servo.get("Debris Pusher Left");
+        servoDebrisPusherMiddle = hardwareMap.servo.get("Debris Pusher Middle");
 
         try {
             setServoPositions();
@@ -138,14 +143,15 @@ public class TankDrive extends OpMode {
 
         // write position values to the wrist and claw servo
         //dumpClimbers.setPosition(dumpClimbersPosition);
-        telemetry.addData("Robot says","Hi");
     }
 
     private void setServoPositions() throws InterruptedException {
 
-        tapeMeasureUpDown.setPosition(HOOK_INITIAL_POSITION);
-        servoClimberDumper.setPosition(0);
+        servoTapeMeasureUpDown.setPosition(HOOK_INITIAL_POSITION);
+       // servoClimberDumper.setPosition(0);
         //servoButtonPusher.setPosition(0);
+
+        setDebrisPusher(DebrisPusherDirection.Down, false);
     }
 
     /*
@@ -164,8 +170,8 @@ public class TankDrive extends OpMode {
         // Drive with joysticks
         //*********
         // Currently testing using both game controllers
-        float left = gamepad1.left_stick_y; // + gamepad2.left_stick_y;
-        float right = gamepad1.right_stick_y; // + gamepad2.right_stick_y;
+        float left = gamepad1.left_stick_y;
+        float right = gamepad1.right_stick_y;
 
         //clip the right/left values so that the values never exceed +/- 1
         right = Range.clip(right, -1, 1);
@@ -185,9 +191,9 @@ public class TankDrive extends OpMode {
 
         //*********
         // Extend or retract the hook
-        //*********
+        //********
         double hookOutSpeed = 1;
-        double hookInSpeed = -.5;
+        double hookInSpeed = -.7;
 
         //clip the hook speed values so that the values never exceed +/- 1
         hookOutSpeed = Range.clip(hookOutSpeed, -1, 1);
@@ -205,8 +211,9 @@ public class TankDrive extends OpMode {
         else {
             motorHook.setPower(0);
         }
-        /*
-        if (gamepad2.dpad_up) {
+
+
+        /*if (gamepad2.dpad_up) {
             motorHook.setPower(hookOutSpeed);
         }
         if (gamepad2.dpad_down) {
@@ -230,6 +237,10 @@ public class TankDrive extends OpMode {
             tapeMeasureUpDownPosition -= tapeMeasureUpDownDelta;
         }
 
+        /* if (gamepad1.b) {
+            tapeMeasureUpDownPosition -= tapeMeasureUpDownDelta;
+        }
+        */
         if (gamepad1.right_bumper && gamepad1.left_bumper){
             tapeMeasureUpDownPosition = HOOK_INITIAL_POSITION;
         }
@@ -248,23 +259,23 @@ public class TankDrive extends OpMode {
 
         //clip the hook speed values so that the values never go below 0 or above .6
         tapeMeasureUpDownPosition = Range.clip(tapeMeasureUpDownPosition, HOOK_MIN_POSITION, HOOK_MAX_POSITION);
-        tapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
+        servoTapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
         //
         //
         //
 
-
-        ////if (gamepad1.a) {
-        // if the A button is pushed on gamepad1, increment the position of
-        // the arm servo.
-        // motorRightKick.setPower(.8);
-        // motorLeftKick.setPower(-.8);
-        ////}
-        ////else {
-        // motorRightKick.setPower(0);
-        // motorLeftKick.setPower(0);
-        ////}
-
+        try {
+            if (gamepad1.dpad_left) {
+                setDebrisPusher(DebrisPusherDirection.Up, false);
+            }
+            else if (gamepad1.dpad_right) {
+                setDebrisPusher(DebrisPusherDirection.Down, false);
+            }
+        }
+        catch (InterruptedException ex)
+        {
+            telemetry.addData("Error",ex.getMessage());
+        }
 
         // Set servos
 
@@ -284,6 +295,27 @@ public class TankDrive extends OpMode {
         telemetry.addData("left tgt pwr",  "left  pwr: " + String.format("%.2f", left));
         telemetry.addData("right tgt pwr", "right pwr: " + String.format("%.2f", right));
         telemetry.addData("Robot says","Long live the King.");
+
+        if (gamepad2.left_bumper) {
+            motorLeft = hardwareMap.dcMotor.get("Wheel 1");
+            motorRight = hardwareMap.dcMotor.get("Wheel 2");
+
+            motorLeft.setDirection(DcMotor.Direction.FORWARD);
+            motorRight.setDirection(DcMotor.Direction.REVERSE);
+
+        }
+
+        if (gamepad2.right_bumper) {
+            motorRight.setDirection(DcMotor.Direction.FORWARD);
+            motorLeft.setDirection(DcMotor.Direction.REVERSE);
+
+            motorLeft = hardwareMap.dcMotor.get("Wheel 2");
+            motorRight = hardwareMap.dcMotor.get("Wheel 1");
+        }
+
+        //
+        // Above is Blade's solution to driving both ways.
+        //
     }
 
     /*
@@ -294,5 +326,45 @@ public class TankDrive extends OpMode {
     @Override
     public void stop() {
 
+    }
+
+    private void setDebrisPusher(DebrisPusherDirection direction, boolean bracePusher) throws InterruptedException {
+
+        double pusherRightPosition = 0;
+        double pusherLeftPosition = 0;
+        double pusherMiddlePosition = 0;
+
+        if (direction == DebrisPusherDirection.Up) {
+            pusherRightPosition = .15;
+
+            // Move the pusher up or down
+            pusherRightPosition = Range.clip(pusherRightPosition, .15, .9);
+            pusherLeftPosition = 1.05 - pusherRightPosition;
+            servoDebrisPusherRight.setPosition(pusherRightPosition);
+            servoDebrisPusherLeft.setPosition(pusherLeftPosition);
+
+            // Move the pusher up before moving the middle brace out of the way
+            Thread.sleep(500);
+            servoDebrisPusherMiddle.setPosition(pusherMiddlePosition);
+
+        } else {
+
+            pusherRightPosition = .9;
+            pusherMiddlePosition = .4;
+
+            if (bracePusher) {
+                // Set the middle brace before moving the pusher down
+                servoDebrisPusherMiddle.setPosition(pusherMiddlePosition);
+                Thread.sleep(500);
+            } else {
+                servoDebrisPusherMiddle.setPosition(0);
+            }
+
+            // Move the pusher up or down
+            pusherRightPosition = Range.clip(pusherRightPosition, .15, .9);
+            pusherLeftPosition = 1.05 - pusherRightPosition;
+            servoDebrisPusherRight.setPosition(pusherRightPosition);
+            servoDebrisPusherLeft.setPosition(pusherLeftPosition);
+        }
     }
 }

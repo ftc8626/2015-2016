@@ -35,29 +35,23 @@ import android.graphics.Color;
 
 import org.swerverobotics.library.ClassFactory;
 import org.swerverobotics.library.SynchronousOpMode;
-import org.swerverobotics.library.TelemetryDashboardAndLog;
 import org.swerverobotics.library.interfaces.EulerAngles;
 import org.swerverobotics.library.interfaces.IBNO055IMU;
-import org.swerverobotics.library.interfaces.IFunc;
-import org.swerverobotics.library.interfaces.II2cDeviceClientUser;
 import org.swerverobotics.library.interfaces.Position;
 import org.swerverobotics.library.interfaces.TeleOp;
 import org.swerverobotics.library.interfaces.Velocity;
-import org.umeprep.ftc.FTC8626.Speedy.Utility;
+import org.umeprep.ftc.FTC8626.Speedy.DebrisPusherDirection;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.Category;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveMoveDirection;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveTurnDirection;
-import org.umeprep.ftc.FTC8626.Speedy.autonomous.NumberCategory;
+import org.umeprep.ftc.FTC8626.Speedy.autonomous.MenuChoices;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.OptionMenu;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.SingleSelectCategory;
-import org.umeprep.ftc.FTC8626.Speedy.autonomous.TextCategory;
 
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorController;
-import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.I2cDevice;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -71,24 +65,40 @@ import com.qualcomm.robotcore.util.Range;
 @TeleOp(name="AutonomousTeleOp", group="FTC8626")
 public class AutonomousTeleOp extends SynchronousOpMode {
 
-    public final int ANDYMARK_MOTORS_TICKS_PER_REVOLUTION = 1120;
-    public final String ALLIANCE = "ALLIANCE";
-    public final String ALLIANCE_RED = "RED";
-    public final String ALLIANCE_BLUE = "BLUE";
-    public final String STARTING_POSITION = "STARTING_POSITION";
-    public final String STARTING_POSITION_LEFT = "LEFT";
-    public final String STARTING_POSITION_RIGHT = "RIGHT";
-    public boolean v_warning_generated = false;
-    public String v_warning_message;
+    private final int ANDYMARK_MOTORS_TICKS_PER_REVOLUTION = 1120;
+    private final int DISTANCE_ERROR_TOLERANCE_IN_TICKS = 2;
+    private final int WHEEL_DIAMETER = 4;
+    private final double WHEEL_CIRCUMFERENCE = WHEEL_DIAMETER * Math.PI;
+
+    private final double MOVE_HEADING_TOLERANCE_DEGREES = 1;
+    private final double TURN_HEADING_TOLERANCE_DEGREES = .5;
+
+    private final double DEFAULT_DRIVE_MOTOR_POWER = .5;
+
+    // Adjust the MOVE_POWER_FACTOR based on the smoothness of floor surface
+    private final double MOVE_POWER_FACTOR = .5;
+    private final double SLOW_MOVE_POWER_FACTOR = .3;
+    private final double MOVE_POWER_HEADING_ADJUSTMENT = .002;
+
+    private final double TURN_POWER_FACTOR = 1.5;
+
+    private final String ALLIANCE = "ALLIANCE";
+    private final String ALLIANCE_RED = "RED";
+    private final String ALLIANCE_BLUE = "BLUE";
+    private final String STARTING_POSITION = "STARTING_POSITION";
+    private final String STARTING_POSITION_LEFT = "LEFT";
+    private final String STARTING_POSITION_RIGHT = "RIGHT";
+    //public boolean v_warning_generated = false;
+    //public String v_warning_message;
 
     // Here we have state we use for updating the dashboard. The first of these is important
     // to read only once per update, as its acquisition is expensive. The remainder, though,
     // could probably be read once per item, at only a small loss in display accuracy.
-    EulerAngles angles;
-    Position position;
-    int loopCycles;
-    int i2cCycles;
-    double ms;
+    //EulerAngles angles;
+    //Position position;
+    //int loopCycles;
+    //int i2cCycles;
+    //double ms;
 
     // Motor variables
     private DcMotor motorRight;
@@ -96,8 +106,11 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     private DcMotor motorHook;
 
     // Servo variables
-    private Servo tapeMeasureUpDown;
+    private Servo servoTapeMeasureUpDown;
     private Servo servoClimberDumper;
+    private Servo servoDebrisPusherRight;
+    private Servo servoDebrisPusherLeft;
+    private Servo servoDebrisPusherMiddle;
     //private Servo servoButtonPusher;
 
     // Menu variables
@@ -106,38 +119,76 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     //
     // Sensor variables
     //
-    //    private TouchSensor v_sensor_touch;
-    private OpticalDistanceSensor v_sensor_ods;
-    private ColorSensor v_sensor_RGB;
+    private OpticalDistanceSensor v_sensor_distance;
+    private ColorSensor v_sensor_color;
+    //  private TouchSensor v_sensor_touch;
 
-        // Gyro variables
+       // Gyro variables
     private IBNO055IMU v_sensor_gyro;
     private ElapsedTime elapsed = new ElapsedTime();
     private IBNO055IMU.Parameters parameters = new IBNO055IMU.Parameters();
 
+    public AutonomousTeleOp()  {
+
+        //this.init();
+/*
+        try {
+            servoTapeMeasureUpDown = hardwareMap.servo.get("Hook Control");
+//            servoClimberDumper = hardwareMap.servo.get("Climber Dumper");
+//            servoDebrisPusherRight = hardwareMap.servo.get("Debris Pusher Right");
+//            servoDebrisPusherLeft = hardwareMap.servo.get("Debris Pusher Left");
+//            servoDebrisPusherMiddle = hardwareMap.servo.get("Debris Pusher Middle");
+
+            //servoButtonPusher = hardwareMap.servo.get("Button Pusher");
+
+//            servoClimberDumper.setPosition(0);
+
+//            setDebrisPusher(DebrisPusherDirection.Down, false);
+            //servoButtonPusher.setPosition(.7);
+
+            servoTapeMeasureUpDown.setPosition(.5);
+            Thread.sleep(1000);
+            servoTapeMeasureUpDown.setPosition(.3);
+        }
+        catch (Exception ex) {
+            telemetry.addData("error",ex.getMessage());
+            telemetry.update();
+        }
+        */
+    }
+
     @Override
     public void main() throws InterruptedException {
 
-        initializeRobot();
-        //composeDashboard();
+        try {
+            initializeRobot();
+            //composeDashboard();
 
-        telemetry.update();
+            telemetry.update();
 
-        waitForStart();
+            waitForStart();
 
-        makeSomeMoves();
+            makeSomeMoves();
 
-        telemetry.update();
+        } catch (Exception ex) {
 
+            telemetry.addData("Error", ex.getMessage());
+
+        } finally {
+
+            telemetry.update();
+            shutDownRobot();
+        }
     }
 
 
     private void initializeRobot() throws InterruptedException {
 
-        InitializeMenu();
         InitializeMotors();
-        InitializeServos();
         InitializeSensors();
+        InitializeServos();
+        Thread.sleep(2000);
+        InitializeMenu();
     }
 
     private void InitializeMenu() throws InterruptedException {
@@ -174,9 +225,8 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     }
 
     private void InitializeSensors() {
-
+/*
         HardwareMap.DeviceMapping<I2cDevice> i2cDeviceList = hardwareMap.i2cDevice;
-
 
         int n = 0;
         for (I2cDevice item : i2cDeviceList) {
@@ -186,8 +236,9 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             telemetry.addData("counter", n);
         }
 
-
-/*
+        telemetry.update();
+ */
+/*  Keep this in case we need the touch sensor to prevent collision damage on the button pusher
         try {
             v_sensor_touch = hardwareMap.touchSensor.get("Touch_1");
         } catch (Exception p_exeception) {
@@ -197,23 +248,23 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             v_sensor_touch = null;
             sensorRGB = hardwareMap.colorSensor.get("mr");
         }
-*/
+
         try {
-            v_sensor_RGB = hardwareMap.colorSensor.get("mr");
+            v_sensor_color = hardwareMap.colorSensor.get("MR Color");
         } catch (Exception p_exception) {
             // m_warning_message("ODS");
             //DbgLog.msg (p_exception.getLocalizedMessage ());
 
-            v_sensor_RGB = null;
+            v_sensor_color = null;
         }
-
+*/
         try {
-            v_sensor_ods = hardwareMap.opticalDistanceSensor.get("ODS");
+            v_sensor_distance = hardwareMap.opticalDistanceSensor.get("ODS");
         } catch (Exception p_exception) {
            // m_warning_message("ODS");
             //DbgLog.msg (p_exception.getLocalizedMessage ());
 
-            v_sensor_ods = null;
+            v_sensor_distance = null;
         }
 
         InitializeSensorGyro();
@@ -257,18 +308,14 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     /**
      * Access the amount of light detected by the Optical Distance Sensor.
      */
-    double getLightDetected()
-
-    {
+    double getLightDetected() {
         double l_return = 0;
 
-        if (v_sensor_ods != null) {
-            l_return = v_sensor_ods.getLightDetected();
-            //l_return = v_sensor_ods.getLightDetectedRaw();
+        if (v_sensor_distance != null) {
+            l_return = v_sensor_distance.getLightDetected();
+            //l_return = v_sensor_distance.getLightDetectedRaw();
         }
-
         return l_return;
-
     }
 
     private void InitializeMotors() {
@@ -282,149 +329,119 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         motorLeft = hardwareMap.dcMotor.get("Wheel 2");  // Get the name of the real motors
         motorRight.setDirection(DcMotor.Direction.REVERSE);
 
+        // Hook
         motorHook = hardwareMap.dcMotor.get("Hook");
         motorHook.setDirection(DcMotor.Direction.REVERSE);
+
     }
 
-    private void InitializeServos() {
+    private void InitializeServos() throws InterruptedException {
+
+        servoTapeMeasureUpDown = hardwareMap.servo.get("Hook Control");
         servoClimberDumper = hardwareMap.servo.get("Climber Dumper");
+        servoDebrisPusherRight = hardwareMap.servo.get("Debris Pusher Right");
+        servoDebrisPusherLeft = hardwareMap.servo.get("Debris Pusher Left");
+        servoDebrisPusherMiddle = hardwareMap.servo.get("Debris Pusher Middle");
+
         //servoButtonPusher = hardwareMap.servo.get("Button Pusher");
 
-        servoClimberDumper.setPosition(.1);
+        servoClimberDumper.setPosition(0);
+
+        setDebrisPusher(DebrisPusherDirection.Down, false);
         //servoButtonPusher.setPosition(.7);
+
+        servoTapeMeasureUpDown.setPosition(.5);
+        Thread.sleep(1000);
+        servoTapeMeasureUpDown.setPosition(.3);
     }
 
-    private void makeSomeMoves() throws InterruptedException {
-        String alliance = "default";
-        String startingPosition = "default";
+    private void makeSomeMoves() throws Exception, InterruptedException {
 
-        for (Category c : menu.getCategories()) {
-            //telemetry.addData(c.getName(), "categoryName");
-            String categoryName = c.getName();
-            if  (c.getName() == ALLIANCE)
-                alliance = menu.selectedOption(categoryName);
-            else
-                startingPosition = menu.selectedOption(categoryName);
-            //telemetry.addData(categoryName, menu.selectedOption(categoryName));
-            //telemetry.addData(menu.selectedOption(categoryName), "option");
-        }
+        MenuChoices menuChoices = getMenuChoices();
 
-        telemetry.addData(ALLIANCE, alliance);
-        telemetry.addData(STARTING_POSITION, startingPosition);
+//        telemetry.addData("make moves","after menu choices");
 
-/*
-        for (Category c : menu.getCategories())
-            telemetry.addData(c.getName(), menu.selectedOption(c.getName()));
+/*        setDebrisPusher(DebrisPusherDirection.Up);
+        Thread.sleep(1000);
+        setDebrisPusher(DebrisPusherDirection.Down);
+
+        telemetry.addData("make moves", "after first up down");
+
+        Thread.sleep(1000);
+        setDebrisPusher(DebrisPusherDirection.Up);
+        Thread.sleep(1000);
+        setDebrisPusher(DebrisPusherDirection.Down);
+        Thread.sleep(2000);
 */
-        telemetry.update();
+//        telemetry.addData("make moves", "after second up down");
 
-        telemetry.addData("makeSomeMoves", "Starting moves");
+        moveTowardBeacon(menuChoices);
 
-        double climberDumperPosition = 0;
-        double buttonPusherPosition = 0;
+        /*prepareToPushButton();
+        readBeaconColor();
 
-       // servoClimberDumper.setPosition(climberDumperPosition);
-       // servoButtonPusher.setPosition(buttonPusherPosition);
-       // Thread.sleep(1000);
+        move(DriveMoveDirection.Backward,.4, 8); /* until the ODS says we're close to the wall
+        move(DriveMoveDirection.Backward, .2, 6);
 
-       /* int distanceInInches = 96;
-        double power = .5;
+        DumpClimbers();
 */
-        //telemetry.update();
-//        turn(DriveTurnDirection.Right, 90);
-        move(DriveMoveDirection.Forward, .5, 72);
-        //Thread.sleep(1000);
-        //move(DriveMoveDirection.Forward, .5, 18);
-        //move(DriveMoveDirection.Forward, .5, 18); //96);
+        stopDriveMotors();
 
-        telemetry.addData("move", " after move is done");
-
-        if (alliance == ALLIANCE_RED) {
-            telemetry.addData("Step", " Red");
-            turn(DriveTurnDirection.Left, 90);
-            //move(DriveMoveDirection.Forward, .5, 18);
-            //turn(DriveTurnDirection.Right, 90);
-    }
-        else {
-            telemetry.addData("Step", " Blue");
-            turn(DriveTurnDirection.Right, 90);
-            //move(DriveMoveDirection.Backward, .5, 18);
-            //turn(DriveTurnDirection.Left, 90);
-        }
-
-        //move(DriveMoveDirection.Backward, .5, 18);
-
-        telemetry.addData("Job", "Finished");
-        telemetry.update();
-        telemetry.addData("getLightDetected: ", + getLightDetected());
-
-        while (getLightDetected() < 15){
-            move(DriveMoveDirection.Forward, .4, 1);
-        }
-
-        move(DriveMoveDirection.Forward, .1, 5);
-        //prePush();
-        //readBeaconColor();
-
-        //move(DriveMoveDirection.Backward,.4, 8); /* until the ODS says we're close to the wall */
-        //move(DriveMoveDirection.Backward, .2, 6);
-
-
-
-
-        /*
-        for (int x=0; x < 11; x++) {
-            buttonPusherPosition += .1;
-            servoButtonPusher.setPosition(buttonPusherPosition);
-            Thread.sleep(1000);
-
-            climberDumperPosition += .1;
-            servoClimberDumper.setPosition(climberDumperPosition);
-            Thread.sleep(1000);
-
-            //turn(DriveTurnDirection.Left, 90);
-            //move(DriveMoveDirection.Forward, power, duration);}
-        }
-        */
-/*
-        turn(DriveTurnDirection.Left, 90);
-        move(DriveMoveDirection.Forward, .3, 2);
-        turn(DriveTurnDirection.Right, 180);
-        move(DriveMoveDirection.Forward, .2, 1);
-*/
-
-        /*
-        boolean floatIt = true;
-        move(DriveMoveDirection.Forward, .8, 1, floatIt);
-        */
+//        telemetry.addData("make moves", "after stop motors");
     }
 
-    private void readBeaconColor() {
-        float hsvValues[] = {0,0,0};
-        Color.RGBToHSV(v_sensor_RGB.red() * 8, v_sensor_RGB.green() * 8, v_sensor_RGB.blue() * 8, hsvValues);
-
-
-        telemetry.addData("Clear", v_sensor_RGB.alpha());
-        telemetry.addData("Red  ", v_sensor_RGB.red());
-        telemetry.addData("Green", v_sensor_RGB.green());
-        telemetry.addData("Blue ", v_sensor_RGB.blue());
-        telemetry.addData("Hue", hsvValues[0]);
+    private void setDebrisPusher(DebrisPusherDirection direction) throws InterruptedException {
+        setDebrisPusher(direction, true);
     }
 
-    private void prePush() throws InterruptedException {
-        double lightDetected = getLightDetected();
+    private void setDebrisPusher(DebrisPusherDirection direction, boolean bracePusher) throws InterruptedException {
 
-        // Move until about 3 inches away
-        if (lightDetected < 100) {
-            move(DriveMoveDirection.Forward, .2, .25);
+        double pusherRightPosition = 0;
+        double pusherLeftPosition = 0;
+        double pusherMiddlePosition = 0;
+
+        if (direction == DebrisPusherDirection.Up) {
+            pusherRightPosition = .15;
+
+            // Move the pusher up or down
+            pusherRightPosition = Range.clip(pusherRightPosition, .15, .9);
+            pusherLeftPosition = 1.05 - pusherRightPosition;
+            servoDebrisPusherRight.setPosition(pusherRightPosition);
+            servoDebrisPusherLeft.setPosition(pusherLeftPosition);
+
+            // Move the pusher up before moving the middle brace out of the way
+            Thread.sleep(500);
+            servoDebrisPusherMiddle.setPosition(pusherMiddlePosition);
+
+        } else {
+
+            pusherRightPosition = .9;
+            pusherMiddlePosition = .4;
+
+            if (bracePusher) {
+                // Set the middle brace before moving the pusher down
+                servoDebrisPusherMiddle.setPosition(pusherMiddlePosition);
+                Thread.sleep(500);
+            } else {
+                servoDebrisPusherMiddle.setPosition(0);
+            }
+
+            // Move the pusher up or down
+            pusherRightPosition = Range.clip(pusherRightPosition, .15, .9);
+            pusherLeftPosition = 1.05 - pusherRightPosition;
+            servoDebrisPusherRight.setPosition(pusherRightPosition);
+            servoDebrisPusherLeft.setPosition(pusherLeftPosition);
         }
+    }
 
-//        servoClimberDumper.setPosition(.1);
-        /*
-        double dumperPostion = servoClimberDumper.getPosition();
-        while (dumperPostion < .6) {
+    private void DumpClimbers() throws InterruptedException {
+
+        double dumperPostion = .1;
+        servoClimberDumper.setPosition(dumperPostion);
+        while (dumperPostion < .7) {
             dumperPostion += .1;
             servoClimberDumper.setPosition(dumperPostion);
+            Thread.sleep(300);
         }
 
         Thread.sleep(1000);
@@ -433,30 +450,106 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             dumperPostion -= .1;
             servoClimberDumper.setPosition(dumperPostion);
         }
-        */
+    }
+
+    private MenuChoices getMenuChoices() throws Exception {
+
+        MenuChoices menuChoices = new MenuChoices();
+
+        if (menu.isEmpty()) {
+            throw new Exception("Please restart and select menu items");
+        }
+
+        for (Category c : menu.getCategories()) {
+
+            String categoryName = c.getName();
+            if (categoryName == ALLIANCE)
+                menuChoices.setAlliance(menu.selectedOption(categoryName));
+            else if (categoryName == STARTING_POSITION) {
+                menuChoices.setStartingPosition(menu.selectedOption(categoryName));
+            }
+        }
+
+        telemetry.addData(ALLIANCE, menuChoices.getAlliance());
+        telemetry.addData(STARTING_POSITION, menuChoices.getStartingPosition());
+        telemetry.update();
+
+        return menuChoices;
+    }
+
+    private void moveTowardBeacon(MenuChoices menuChoices) throws InterruptedException {
+
+        move(DriveMoveDirection.Forward, DEFAULT_DRIVE_MOTOR_POWER, 84);
+
+        if (menuChoices.getAlliance() == ALLIANCE_RED) {
+            //turn(DriveTurnDirection.Left, 90);
+            //Thread.sleep(1000);
+
+            //move(DriveMoveDirection.Forward, .5, 24); //48);
+            //Thread.sleep(2000);
+
+            //prepareToPushButton();
+            //turn(DriveTurnDirection.Right, 90);
+        }
+        else {
+            //turn(DriveTurnDirection.Right, 90);
+            //Thread.sleep(1000);
+
+            //move(DriveMoveDirection.Forward, .5, 48);
+            //Thread.sleep(2000);
+
+            //prepareToPushButton();
+            //turn(DriveTurnDirection.Left, 90);
+        }
+
+        //move(DriveMoveDirection.Forward, .5, 36); //96
+    }
+
+    private void readBeaconColor() {
+        float hsvValues[] = {0,0,0};
+        Color.RGBToHSV(v_sensor_color.red() * 8, v_sensor_color.green() * 8, v_sensor_color.blue() * 8, hsvValues);
+
+
+        telemetry.addData("Clear", v_sensor_color.alpha());
+        telemetry.addData("Red  ", v_sensor_color.red());
+        telemetry.addData("Green", v_sensor_color.green());
+        telemetry.addData("Blue ", v_sensor_color.blue());
+        telemetry.addData("Hue", hsvValues[0]);
+    }
+
+    private void prepareToPushButton() throws InterruptedException {
+
+        telemetry.addData("prepareToPushBotton", "starting");
+        double lightDetected = getLightDetected();
+
+        //telemetry.addData("getLightDetected: ", +lightDetected);
+        //telemetry.update();
+
+        // Move until about 3 inches away
+        while (lightDetected < 80) {
+            move(DriveMoveDirection.Forward, .3, 1);
+            telemetry.addData("getLightDetected: ", + lightDetected);
+            telemetry.update();
+        }
+
+        telemetry.addData("Yay! Light detected","");
+        telemetry.update();
+    }
+
+    private void move(DriveMoveDirection robotMoveDirection, double distanceInInches) throws InterruptedException {
+        double defaultMotorPower = DEFAULT_DRIVE_MOTOR_POWER;
+        move(robotMoveDirection, defaultMotorPower, distanceInInches);
     }
 
     private void move(DriveMoveDirection robotMoveDirection, double movePower, double distanceInInches) throws InterruptedException {
 
-        //Thread.sleep(1000);
-/*
-        if (robotMoveDirection == DriveMoveDirection.Forward) {
-            telemetry.addData("Direction", "equals Forward");
-        } else {
-            telemetry.addData("Direction", "equals Backward");
-            movePower = -movePower;
-        }
-*/
-        //telemetry.update();
-
-        // Zero out the motor encoders
         motorRight.setMode(DcMotorController.RunMode.RUN_USING_ENCODERS);
         motorLeft.setMode(DcMotorController.RunMode.RUN_USING_ENCODERS);
 
         //motorRight.setMode(DcMotorController.RunMode.RESET_ENCODERS);
         //motorLeft.setMode(DcMotorController.RunMode.RESET_ENCODERS);
 
-        double distanceInRevolutions = distanceInInches / 12.5664;
+        double distanceInRevolutions = distanceInInches / WHEEL_CIRCUMFERENCE;
         int distanceInTicks = (int)Math.round(distanceInRevolutions * ANDYMARK_MOTORS_TICKS_PER_REVOLUTION);
 
         int currentRightPosition = motorRight.getCurrentPosition();
@@ -472,45 +565,92 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             targetRightPosition = currentRightPosition - distanceInTicks;
             targetLeftPosition = currentLeftPosition - distanceInTicks;
         }
-
-        telemetry.addData("continueAction", "Right position: " + currentRightPosition);
-        telemetry.addData("continueAction", "Left position: " + currentLeftPosition);
-        telemetry.addData("continueAction", "Target Right position: " + targetRightPosition);
-        telemetry.addData("continueAction", "Target Left position: " + targetLeftPosition);
-        telemetry.addData("continueAction", "DistanceInRevs: " + distanceInRevolutions);
-        telemetry.addData("continueAction", "DistanceInTicks: " + distanceInTicks);
+/*
+        telemetry.addData("move", "Right position: " + currentRightPosition);
+        telemetry.addData("move", "Left position: " + currentLeftPosition);
+        telemetry.addData("move", "Target Right position: " + targetRightPosition);
+        telemetry.addData("move", "Target Left position: " + targetLeftPosition);
+        telemetry.addData("move", "DistanceInRevs: " + distanceInRevolutions);
+        telemetry.addData("move", "DistanceInTicks: " + distanceInTicks);
         telemetry.update();
-        Thread.sleep(5);
-
+*/
         motorRight.setTargetPosition(targetRightPosition);
         motorLeft.setTargetPosition(targetLeftPosition);
 
         motorRight.setMode(DcMotorController.RunMode.RUN_TO_POSITION);
         motorLeft.setMode(DcMotorController.RunMode.RUN_TO_POSITION);
 
-        while (Math.abs(motorRight.getCurrentPosition() - targetRightPosition) > 10 ||
-                Math.abs(motorLeft.getCurrentPosition() - targetLeftPosition) > 10)  {
 
-            setMotorPower(movePower);
+        // Start slow
+        double initialMovePower = movePower;
+
+        if (distanceInInches > 12) {
+            // Adjust the power based on the factor (change based on smoothness of floor surface)
+            initialMovePower = Range.clip(movePower * MOVE_POWER_FACTOR, -1, 1);
+
+            for (int counter = 1; counter < 25; counter++) {
+                setMotorPower(initialMovePower/25 * counter);
+                Thread.sleep(50);
+            }
+        }
+        else
+        {
+            // Adjust the power based on the factor (change based on smoothness of floor surface)
+            initialMovePower = Range.clip(movePower * SLOW_MOVE_POWER_FACTOR, -1, 1);
         }
 
-        stopRobot();
-    }
+        double initialHeading = getHeading();
+        double currentHeading;
 
-/*
-    private void continueAction(double durationInSeconds) throws InterruptedException {
-        telemetry.addData("doAction1", "Duration secs: " + durationInSeconds);
-                  O=={:::::::::::::::>
-        long durationInMilliseconds = (long) (durationInSeconds * 1000);
-        Thread.sleep(durationInMilliseconds);   //Thread.Sleep may experience an error while running so it can "throw an exception"
+        double rightPositionDifference = motorRight.getCurrentPosition() - targetRightPosition;
+        double leftPositionDifference = motorLeft.getCurrentPosition() - targetLeftPosition;
 
-        stopRobot();
+        while (Math.abs(rightPositionDifference) > DISTANCE_ERROR_TOLERANCE_IN_TICKS ||
+                Math.abs(leftPositionDifference) > DISTANCE_ERROR_TOLERANCE_IN_TICKS)  {
 
-        telemetry.addData("doAction2", "After stop");
+            currentHeading = getHeading();
+            double headingDifference = getMoveHeadingDifference(currentHeading, initialHeading);
 
-        Thread.sleep(1000);
-    }
+/*            telemetry.addData("currentHeading: ", currentHeading);
+            telemetry.addData("headingDiff: ", headingDifference);
 */
+            telemetry.addData("move", "Right position: " + currentRightPosition);
+            telemetry.addData("move", "Left position: " + currentLeftPosition);
+            telemetry.addData("move", "Target Right position: " + targetRightPosition);
+            telemetry.addData("move", "Target Left position: " + targetLeftPosition);
+            telemetry.update();
+
+            Thread.sleep(500);
+
+            double rightPower = Range.clip(initialMovePower, -1, 1);
+            double leftPower = rightPower;
+/*
+            if (headingDifference == 1) {
+                leftPower -= MOVE_POWER_HEADING_ADJUSTMENT;
+                rightPower += MOVE_POWER_HEADING_ADJUSTMENT;
+            } else if (headingDifference == -1) {
+                leftPower += MOVE_POWER_HEADING_ADJUSTMENT;
+                rightPower -= MOVE_POWER_HEADING_ADJUSTMENT;
+            }
+*/
+
+            if (rightPositionDifference > DISTANCE_ERROR_TOLERANCE_IN_TICKS)
+                rightPower = -rightPower;
+            if (leftPositionDifference > DISTANCE_ERROR_TOLERANCE_IN_TICKS)
+                leftPower = -leftPower;
+
+            setMotorPower(rightPower, leftPower);
+
+            //Thread.sleep(1000);
+
+            rightPositionDifference = motorRight.getCurrentPosition() - targetRightPosition;
+            leftPositionDifference = motorLeft.getCurrentPosition() - targetLeftPosition;
+        }
+
+        stopDriveMotors();
+        Thread.sleep(300);
+    }
+
     private void setMotorPower(double power) {
         setMotorPower(power, power);
     }
@@ -520,82 +660,92 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         //telemetry.addData("setMotorPower2", "LeftPower: " + leftPower); //motorLeft.getPower());
         //telemetry.addData("setMotorPower3", "Right power: " + rightPower); //motorRight.getPower());
 
-        motorRight.setPower(rightPower);
         motorLeft.setPower(leftPower);
+        motorRight.setPower(rightPower);
     }
 
     // Incorporate this if needed
     //update_telemetry (); // Update common telemetry
     //update_gamepad_telemetry ();
 
-    private void stopRobot() {
-        telemetry.addData("StopRobot1", "Preparing to stop");
+    private void stopDriveMotors() {
         setMotorPower(0);
-        telemetry.addData("StopRobot2", "After stopping");
     }
 
-    /*
-    private void move(DriveMoveDirection robotDirection, double movePower, double distanceInInches, boolean floatStop) {
-
-        setDirectedMotorPower(robotDirection, movePower);
-        continueAction(distanceInInches);
-
-        if (floatStop) {
-            floatRobot();
-        }
+    private void stopServos() throws InterruptedException {
+        servoClimberDumper.setPosition(0);
+        servoTapeMeasureUpDown.setPosition(0);
+        setDebrisPusher(DebrisPusherDirection.Down, false);
     }
-    */
-/*
-    private void turn(DriveTurnDirection direction, float moveAngle) throws InterruptedException {
-        telemetry.addData("Turn", "Starting turn");
-        telemetry.addData("Turn", "Move angle: " + moveAngle);
 
-        float angle = Range.clip(moveAngle, 0, 180);
-        telemetry.addData("Turn", "Angle after clip: " + angle);
-
-        // The following code will be replaced by the gyro if we get it working
-        float right = 0;
-        float left = 0;
-
-        // Translate the move Angle into an amount of right or left turn between 1 and -1
-        if (direction == DriveTurnDirection.Left) {
-            angle = -angle;
-        }
-
-        telemetry.addData("Turn", "Angle after direction: " + angle);
-
-        right = 0 + angle / 180;
-        left = 0 - angle / 180;
-
-        telemetry.addData("Turn", "Right: " + right);
-        telemetry.addData("Turn", "Left: " + left);
-
-        // clip the right/left values so that the values never exceed +/- 1
-        right = Range.clip(right, -1, 1);
-        left = Range.clip(left, -1, 1);
-
-        telemetry.addData("Turn", "Right after clip: " + right);
-        telemetry.addData("Turn", "Left after clip: " + left);
-
-        telemetry.addData("Turn", "Setting power start");
-
-        // write the values to the motors
-        setMotorPower(right, left);
-
-        telemetry.addData("Turn", "After set power: " + left);
-
-        continueAction(turnDuration);
-
-        telemetry.addData("Turn", "After continue: " + left);
+    private void shutDownRobot() throws InterruptedException {
+        stopDriveMotors();
+        stopServos();
     }
-*/
 /*
     private void floatRobot() {
-        telemetry.addData("Floating1", "Starting float");
         motorRight.setPowerFloat();
         motorLeft.setPowerFloat();
     }
 */
+
+    private void turn(DriveTurnDirection direction, float turnAngle) throws InterruptedException {
+
+        motorRight.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
+        motorLeft.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
+
+        turnAngle = Range.clip(turnAngle, 0, 180);
+        turnAngle = (direction == DriveTurnDirection.Left) ? -turnAngle : turnAngle;
+
+        // Adjust the turnPowerFactor based on the smoothness of floor surface
+        double turnPower = .15 * TURN_POWER_FACTOR;
+
+        double initialHeading = getHeading();
+        double currentHeading = initialHeading;
+        double newHeading = initialHeading + turnAngle;
+        double desiredHeading =  normalizeDegrees(newHeading);
+
+        double headingDifference = getTurnHeadingDifference(currentHeading, desiredHeading);
+
+        while (headingDifference > TURN_HEADING_TOLERANCE_DEGREES) {
+
+            if (Math.abs(headingDifference) < 60) {
+                turnPower = .1 * TURN_POWER_FACTOR;
+            } else if (Math.abs(headingDifference) < 30) {
+                turnPower = .08 * TURN_POWER_FACTOR;
+            }
+
+            double desiredMinusCurrent = desiredHeading - currentHeading;
+            if (desiredMinusCurrent > 180 || (desiredMinusCurrent < 0 && desiredMinusCurrent > -180)) {
+            //if (direction == DriveTurnDirection.Left) {
+//                telemetry.addData("Turn", "Turning left");
+                motorRight.setPower(turnPower);
+                motorLeft.setPower(0);
+            } else if ((desiredMinusCurrent   > 0 && desiredMinusCurrent <= 180) || desiredMinusCurrent <= -180) {
+//                telemetry.addData("Turn", "Turning right");
+                // if the signal is to the right move right
+                motorRight.setPower(0);
+                motorLeft.setPower(turnPower);
+            } else {
+                stopDriveMotors();
+                Thread.sleep(300);
+            }
+
+            currentHeading = getHeading();
+            headingDifference = getTurnHeadingDifference(currentHeading, desiredHeading);
+
+            telemetry.addData("Turn", "Initial heading: " + initialHeading);
+            telemetry.addData("Turn", "Current heading: " + currentHeading);
+            telemetry.addData("Turn", "Desired heading: " + desiredHeading);
+            telemetry.addData("Turn", "Heading difference: " + headingDifference);
+            telemetry.update();
+        }
+
+        stopDriveMotors();
+        Thread.sleep(300);
+    }
+
+/*
     private void turn(DriveTurnDirection direction, float turnAngle) throws InterruptedException {
 
         motorRight.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
@@ -604,14 +754,12 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         final double headingToleranceDegrees = 1;
         final long delayToAllowTurn = 20;
 
-        double rightPower = .3;
-        double leftPower = .3;
-        double scaledPowerFactor = .3;
+        double rightPower = .5;
+        double leftPower = .5;
+        double scaledPowerFactor = 1;
 
         double initialHeading = getHeading();
-
-        telemetry.addData("turn", "returned heading: " + initialHeading);
-        //telemetry.update();
+        telemetry.addData("Turn", "Initial heading: " + initialHeading);
 
         double currentHeading = initialHeading;
         double desiredHeading = 0;
@@ -623,22 +771,16 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         else
             desiredHeading = normalizeDegrees(initialHeading + turnAngle);
 
-        double headingDifference = getHeadingDifference(currentHeading, desiredHeading);
-
-//        telemetry.addData("Turn", "Desired heading: " + desiredHeading);
-//        telemetry.addData("Turn", "Heading difference: " + headingDifference);
-//        telemetry.update();
+        double headingDifference = getTurnHeadingDifference(currentHeading, desiredHeading);
 
         while (headingDifference > headingToleranceDegrees) {
 
             // if the heading is greater than desired turn left
-            //rightPower = rightPower * scaledPowerFactor;
-            //leftPower = leftPower * scaledPowerFactor;
+            rightPower = rightPower * scaledPowerFactor;
+            leftPower = leftPower * scaledPowerFactor;
 
-            telemetry.addData("Turn", "Initial heading: " + initialHeading);
             telemetry.addData("Turn", "Desired heading: " + desiredHeading);
             telemetry.addData("Turn", "Current heading: " + currentHeading);
-            telemetry.addData("Turn", "Heading difference: " + headingDifference);
             telemetry.update();
 
             double desiredMinusCurrent = desiredHeading - currentHeading;
@@ -660,15 +802,37 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             Thread.sleep(delayToAllowTurn);
 
             currentHeading = getHeading();
-            headingDifference = getHeadingDifference(currentHeading, desiredHeading);
+            headingDifference = getTurnHeadingDifference(currentHeading, desiredHeading);
+
+            telemetry.addData("Turn", "Current heading: " + currentHeading);
+            telemetry.addData("Turn", "Heading difference: " + headingDifference);
+            telemetry.update();
         }
 
         // stop the motors
         motorRight.setPower(0);
         motorLeft.setPower(0);
     }
+*/
+    private int getMoveHeadingDifference(double currentHeading, double initialHeading) {
+        double diff = currentHeading - initialHeading;
+        double absDiff = Math.abs(diff);
 
-    private double getHeadingDifference(double currentHeading, double desiredHeading) {
+        if (absDiff > 180) {
+            if (initialHeading < currentHeading)
+                diff = currentHeading - (360 + initialHeading);
+            else
+                diff = (360 + currentHeading) - initialHeading;
+        }
+
+        if (Math.abs(diff) <= MOVE_HEADING_TOLERANCE_DEGREES)
+            return 0;
+        else
+            // Return 1 if the currentHeading is to the right of the initial heading, otherwise -1
+            return (diff > 0) ? 1 : -1;
+    }
+
+    private double getTurnHeadingDifference(double currentHeading, double desiredHeading) {
 
         double absDiff = Math.abs(currentHeading - desiredHeading);
 
@@ -680,73 +844,12 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     }
 
     private double getHeading() {
-        telemetry.addData("heading","getting heading");
 
         EulerAngles angles = v_sensor_gyro.getAngularOrientation();
         double currentHeading = angles.heading;
 
-        telemetry.addData("heading: ",currentHeading);
-
         return Range.clip(currentHeading, 0, 360);
     }
-
-/*
-    private void turnSpecificTime(DriveTurnDirection direction, float moveAngle)
-    //, double duration)
-            throws InterruptedException {
-
-        double angle = Range.clip(moveAngle, 0, 180);
-
-        // The following codewill be replaced by the gyro if we get it working
-        double rightPower = .5;
-        double leftPower = .5;
-
-        // Translate the move Angle into an amount of right or left turn between 1 and -1
-        if (direction == DriveTurnDirection.Left)
-            leftPower = -rightPower;
-        else
-            rightPower = -leftPower;
-
-        double duration = moveAngle / 180;
-        //duration = 0 - moveAngle / 180;
-
-        // clip the right/left values so that the values never exceed +/- 1
-        rightPower = Range.clip(rightPower, -1, 1);
-        leftPower = Range.clip(leftPower, -1, 1);
-
-        // write the values to the motors
-        setMotorPower(rightPower, leftPower);
-        continueAction(duration);
-    }
-*/
-
-/*
-    private void makeSomeSimpleMoves() throws InterruptedException
-    {
-        // write the values to the motors
-        double testPower = .2;
-        motorRight.setPower(testPower);
-        //motorLeft.setPower(testPower);
-        motorLeft.setPower(0);
-
-        telemetry.addData("Text", "AutonomousTeleOp");
-        telemetry.addData("left power: ", motorLeft.getPower());
-        telemetry.addData("right power: ", motorRight.getPower());
-
-        int moveDurationInSeconds = 1;
-        int moveDuration = moveDurationInSeconds * 1000;  //# of Seconds x 1000 -> Sleep needs milliseconds, 2 seconds = 2000 milliseconds
-        Thread.sleep(moveDuration);   //Thread.Sleep may experience an error while running so it can "throw an exception"
-
-        testPower = 0;
-        motorRight.setPower(testPower);
-        motorLeft.setPower(testPower);
-
-        telemetry.addData("Text", "AutonomousTeleOp");
-        telemetry.addData("left power: ", motorLeft.getPower());
-        telemetry.addData("right power: ", motorRight.getPower());
-    }
-*/
-
 
     /**
      * Mutate the warning message by ADDING the specified message to the current
@@ -755,7 +858,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
      * A comma will be added before the specified message if the message isn't
      * empty.
      */
-    void m_warning_message(String p_exception_message)
+/*    void m_warning_message(String p_exception_message)
 
     {
         if (v_warning_generated) {
@@ -765,7 +868,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
         v_warning_message += p_exception_message;
 
     } // m_warning_message
-
+*/
 
     // Swerve code
 //----------------------------------------------------------------------------------------------

@@ -221,7 +221,7 @@ public class SensorTeleOp extends OpMode {
 		motorLeft.setPower(0);
 
 		// Servo code
-		tapeMeasureUpDown = hardwareMap.servo.get("servo_1");
+		servoTapeMeasureUpDown = hardwareMap.servo.get("servo_1");
 		//dumpClimbers = hardwareMap.servo.get("servo_6");
 
 		// assign the starting position of the servos
@@ -230,7 +230,7 @@ public class SensorTeleOp extends OpMode {
 		//dumpClimbersPosition = 0.2;
 
 		// write position values to the wrist and claw servo
-		tapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
+		servoTapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
 		//dumpClimbers.setPosition(dumpClimbersPosition);
 
 */
@@ -241,7 +241,7 @@ public class SensorTeleOp extends OpMode {
         //}
         //catch (InterruptedException ex) {}
         //tapeMeasureUpDownPosition = .5;
-        //tapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
+        //servoTapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
         //try
         //{
         //	delay(2);
@@ -337,13 +337,13 @@ public class SensorTeleOp extends OpMode {
 		}
 
 		//tapeMeasureUpDownPosition = .7;
-		tapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
+		servoTapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
 		// clip the position values so that they never exceed their allowed range.
 		//tapeMeasureUpDownPosition = Range.clip(armPosition, ARM_MIN_RANGE, ARM_MAX_RANGE);
 		//clawPosition = Range.clip(clawPosition, CLAW_MIN_RANGE, CLAW_MAX_RANGE);
 
 		// write position values to the wrist and claw servo
-		//tapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
+		//servoTapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
 		//dumpClimbers.setPosition(dumpClimbersPosition);
 
 		//try

@@ -46,6 +46,9 @@ public class OptionMenu {
         }
     }
 
+    public boolean isEmpty() {
+        return (categories.size() == 0 || selectedOptions.isEmpty());
+    }
     /**
      * Display the options menu based on previously added categories
      */
