@@ -66,7 +66,7 @@ import com.qualcomm.robotcore.util.Range;
 public class AutonomousTeleOp extends SynchronousOpMode {
 
     private final int ANDYMARK_MOTORS_TICKS_PER_REVOLUTION = 1120;
-    private final int DISTANCE_ERROR_TOLERANCE_IN_TICKS = 2;
+    private final int DISTANCE_ERROR_TOLERANCE_IN_TICKS = 5;
     private final int WHEEL_DIAMETER = 4;
     private final double WHEEL_CIRCUMFERENCE = WHEEL_DIAMETER * Math.PI;
 
@@ -345,14 +345,12 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
         //servoButtonPusher = hardwareMap.servo.get("Button Pusher");
 
-        servoClimberDumper.setPosition(0);
+        servoClimberDumper.setPosition(.05);
 
         setDebrisPusher(DebrisPusherDirection.Down, false);
         //servoButtonPusher.setPosition(.7);
 
-        servoTapeMeasureUpDown.setPosition(.5);
-        Thread.sleep(1000);
-        servoTapeMeasureUpDown.setPosition(.3);
+        servoTapeMeasureUpDown.setPosition(.8);
     }
 
     private void makeSomeMoves() throws Exception, InterruptedException {
@@ -382,9 +380,9 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
         move(DriveMoveDirection.Backward,.4, 8); /* until the ODS says we're close to the wall
         move(DriveMoveDirection.Backward, .2, 6);
-
-        DumpClimbers();
 */
+        DumpClimbers();
+
         stopDriveMotors();
 
 //        telemetry.addData("make moves", "after stop motors");
@@ -450,6 +448,8 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             dumperPostion -= .1;
             servoClimberDumper.setPosition(dumperPostion);
         }
+        move(DriveMoveDirection.Forward, .5, 1.5);
+        move(DriveMoveDirection.Backward, .5, 18);
     }
 
     private MenuChoices getMenuChoices() throws Exception {
@@ -479,20 +479,48 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
     private void moveTowardBeacon(MenuChoices menuChoices) throws InterruptedException {
 
-        move(DriveMoveDirection.Forward, DEFAULT_DRIVE_MOTOR_POWER, 84);
 
         if (menuChoices.getAlliance() == ALLIANCE_RED) {
-            //turn(DriveTurnDirection.Left, 90);
+
             //Thread.sleep(1000);
 
-            //move(DriveMoveDirection.Forward, .5, 24); //48);
+            if (menuChoices.getStartingPosition() == STARTING_POSITION_RIGHT){
+                move(DriveMoveDirection.Forward, DEFAULT_DRIVE_MOTOR_POWER, 18);
+                turn(DriveTurnDirection.Left, 45);
+                move(DriveMoveDirection.Forward, .5, 80);
+                turn(DriveTurnDirection.Left, 41.5);
+                move(DriveMoveDirection.Forward, .5, 5.7);
+
+            }
+            else {
+                move(DriveMoveDirection.Forward, DEFAULT_DRIVE_MOTOR_POWER, 36);
+                turn(DriveTurnDirection.Left, 43);
+                move(DriveMoveDirection.Forward, .5, 52);
+                turn(DriveTurnDirection.Left, 41.5);
+                move(DriveMoveDirection.Forward, .5, 2.6);
+            }
             //Thread.sleep(2000);
 
             //prepareToPushButton();
             //turn(DriveTurnDirection.Right, 90);
         }
-        else {
-            //turn(DriveTurnDirection.Right, 90);
+        else { //After "else" Blue Alliance is activated -Blade
+
+            if (menuChoices.getStartingPosition() == STARTING_POSITION_LEFT){
+                move(DriveMoveDirection.Forward, DEFAULT_DRIVE_MOTOR_POWER, 18);
+                turn(DriveTurnDirection.Right, 45);
+                move(DriveMoveDirection.Forward, .5, 78);
+                turn(DriveTurnDirection.Right, 40.5);
+                move(DriveMoveDirection.Forward, .5, 5.7);
+            }
+            else {
+                move(DriveMoveDirection.Forward, DEFAULT_DRIVE_MOTOR_POWER, 32);
+                turn(DriveTurnDirection.Right, 45);
+                move(DriveMoveDirection.Forward, .5, 52);
+                turn(DriveTurnDirection.Right, 41.5);
+                move(DriveMoveDirection.Forward, .5, 2);
+
+            }
             //Thread.sleep(1000);
 
             //move(DriveMoveDirection.Forward, .5, 48);
@@ -689,7 +717,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     }
 */
 
-    private void turn(DriveTurnDirection direction, float turnAngle) throws InterruptedException {
+    private void turn(DriveTurnDirection direction, double turnAngle) throws InterruptedException {
 
         motorRight.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
         motorLeft.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
