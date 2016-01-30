@@ -76,7 +76,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
     private final double DEFAULT_DRIVE_MOTOR_POWER = .5;
 
     // Adjust the MOVE_POWER_FACTOR based on the smoothness of floor surface
-    private final double MOVE_POWER_FACTOR = .5;
+    private final double MOVE_POWER_FACTOR = .8;
     private final double SLOW_MOVE_POWER_FACTOR = .3;
     private final double MOVE_POWER_HEADING_ADJUSTMENT = .002;
 
@@ -184,11 +184,10 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
     private void initializeRobot() throws InterruptedException {
 
+        InitializeMenu();
         InitializeMotors();
         InitializeSensors();
         InitializeServos();
-        Thread.sleep(2000);
-        InitializeMenu();
     }
 
     private void InitializeMenu() throws InterruptedException {
@@ -347,9 +346,6 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
         servoClimberDumper.setPosition(.05);
 
-        setDebrisPusher(DebrisPusherDirection.Down, false);
-        //servoButtonPusher.setPosition(.7);
-
         servoTapeMeasureUpDown.setPosition(.8);
     }
 
@@ -357,35 +353,47 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
         MenuChoices menuChoices = getMenuChoices();
 
-//        telemetry.addData("make moves","after menu choices");
-
-/*        setDebrisPusher(DebrisPusherDirection.Up);
-        Thread.sleep(1000);
-        setDebrisPusher(DebrisPusherDirection.Down);
-
-        telemetry.addData("make moves", "after first up down");
-
-        Thread.sleep(1000);
-        setDebrisPusher(DebrisPusherDirection.Up);
-        Thread.sleep(1000);
-        setDebrisPusher(DebrisPusherDirection.Down);
-        Thread.sleep(2000);
-*/
-//        telemetry.addData("make moves", "after second up down");
-
         moveTowardBeacon(menuChoices);
-
-        /*prepareToPushButton();
+/*
+        prepareToPushButton();
         readBeaconColor();
-
-        move(DriveMoveDirection.Backward,.4, 8); /* until the ODS says we're close to the wall
-        move(DriveMoveDirection.Backward, .2, 6);
 */
-        DumpClimbers();
+        dumpClimbers();
+
+        pushBeaconButton(menuChoices);
+
+        moveTowardFloorGoal(menuChoices);
 
         stopDriveMotors();
+    }
 
-//        telemetry.addData("make moves", "after stop motors");
+    private void moveTowardFloorGoal(MenuChoices menuChoices) throws InterruptedException {
+
+        if (menuChoices.getAlliance() == ALLIANCE_RED) {
+            turn(DriveTurnDirection.Left, 78);
+            move(DriveMoveDirection.Forward, .3, 10);
+        }
+        else {
+            turn(DriveTurnDirection.Right, 78);
+            move(DriveMoveDirection.Forward, .3, 10);
+        }
+    }
+
+    private void initializeDebrisPusher() throws InterruptedException {
+
+        // Move the pusher up
+        servoDebrisPusherRight.setPosition(.15);
+        servoDebrisPusherLeft.setPosition(.9);
+        Thread.sleep(500);
+
+        // Set the middle brace before moving the pusher down
+        double pusherMiddlePosition = .45;
+        servoDebrisPusherMiddle.setPosition(pusherMiddlePosition);
+        Thread.sleep(300);
+
+        // Move the pusher down
+        servoDebrisPusherRight.setPosition(.9);
+        servoDebrisPusherLeft.setPosition(.15);
     }
 
     private void setDebrisPusher(DebrisPusherDirection direction) throws InterruptedException {
@@ -394,18 +402,12 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
     private void setDebrisPusher(DebrisPusherDirection direction, boolean bracePusher) throws InterruptedException {
 
-        double pusherRightPosition = 0;
-        double pusherLeftPosition = 0;
-        double pusherMiddlePosition = 0;
+        double pusherMiddlePosition = .45;
 
         if (direction == DebrisPusherDirection.Up) {
-            pusherRightPosition = .15;
-
             // Move the pusher up or down
-            pusherRightPosition = Range.clip(pusherRightPosition, .15, .9);
-            pusherLeftPosition = 1.05 - pusherRightPosition;
-            servoDebrisPusherRight.setPosition(pusherRightPosition);
-            servoDebrisPusherLeft.setPosition(pusherLeftPosition);
+            servoDebrisPusherRight.setPosition(.15);
+            servoDebrisPusherLeft.setPosition(.9);
 
             // Move the pusher up before moving the middle brace out of the way
             Thread.sleep(500);
@@ -413,7 +415,6 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
         } else {
 
-            pusherRightPosition = .9;
             pusherMiddlePosition = .4;
 
             if (bracePusher) {
@@ -425,14 +426,12 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             }
 
             // Move the pusher up or down
-            pusherRightPosition = Range.clip(pusherRightPosition, .15, .9);
-            pusherLeftPosition = 1.05 - pusherRightPosition;
-            servoDebrisPusherRight.setPosition(pusherRightPosition);
-            servoDebrisPusherLeft.setPosition(pusherLeftPosition);
+            servoDebrisPusherRight.setPosition(.9);
+            servoDebrisPusherLeft.setPosition(.15);
         }
     }
 
-    private void DumpClimbers() throws InterruptedException {
+    private void dumpClimbers() throws InterruptedException {
 
         double dumperPostion = .1;
         servoClimberDumper.setPosition(dumperPostion);
@@ -448,8 +447,32 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             dumperPostion -= .1;
             servoClimberDumper.setPosition(dumperPostion);
         }
-        move(DriveMoveDirection.Forward, .5, 1.5);
-        move(DriveMoveDirection.Backward, .5, 18);
+
+    }
+
+    private void pushBeaconButton(MenuChoices menuChoices) throws InterruptedException {
+        if (menuChoices.getAlliance() == ALLIANCE_RED) {
+            if (menuChoices.getStartingPosition() == STARTING_POSITION_RIGHT){
+                move(DriveMoveDirection.Forward, .5, 1.5);
+                move(DriveMoveDirection.Backward, .5, 10);
+            }
+            else {
+                move(DriveMoveDirection.Forward, .5, 4);
+                move(DriveMoveDirection.Backward, .5, 10);
+            }
+
+        }
+        else {
+            if (menuChoices.getStartingPosition() == STARTING_POSITION_LEFT){
+                move(DriveMoveDirection.Forward, .5, 1.5);
+                move(DriveMoveDirection.Backward, .5, 10);
+            }
+            else {
+                move(DriveMoveDirection.Forward, .5, 4);
+                move(DriveMoveDirection.Backward, .5, 10);
+            }
+        }
+
     }
 
     private MenuChoices getMenuChoices() throws Exception {
@@ -479,6 +502,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
     private void moveTowardBeacon(MenuChoices menuChoices) throws InterruptedException {
 
+        initializeDebrisPusher();
 
         if (menuChoices.getAlliance() == ALLIANCE_RED) {
 
@@ -516,9 +540,9 @@ public class AutonomousTeleOp extends SynchronousOpMode {
             else {
                 move(DriveMoveDirection.Forward, DEFAULT_DRIVE_MOTOR_POWER, 32);
                 turn(DriveTurnDirection.Right, 45);
-                move(DriveMoveDirection.Forward, .5, 52);
+                move(DriveMoveDirection.Forward, .5, 48);
                 turn(DriveTurnDirection.Right, 41.5);
-                move(DriveMoveDirection.Forward, .5, 2);
+                move(DriveMoveDirection.Forward, .5, 7.4);
 
             }
             //Thread.sleep(1000);
@@ -650,7 +674,7 @@ public class AutonomousTeleOp extends SynchronousOpMode {
 
             Thread.sleep(500);
 
-            double rightPower = Range.clip(initialMovePower, -1, 1);
+            double rightPower = Range.clip(initialMovePower*MOVE_POWER_FACTOR, -1, 1);
             double leftPower = rightPower;
 /*
             if (headingDifference == 1) {
