@@ -33,53 +33,48 @@ package com.qualcomm.ftcrobotcontroller.opmodes;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManager;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeRegister;
-import org.swerverobotics.library.internal.AnnotatedOpModeRegistrar;
+
+import org.umeprep.ftc.FTC8626.Speedy.autonomous.opmodes.*;
+import org.umeprep.ftc.FTC8626.Speedy.driver.opmodes.*;
 
 /**
  * Register Op Modes
  */
-public class FtcOpModeRegister implements OpModeRegister 
-    {
+public class FtcOpModeRegister implements OpModeRegister {
+
   /**
-     * The Op Mode Manager will call this method when it wants a list of all available op modes.
-     * OpModes which are registered during this call will form the contents of the OpMode
-     * list on the driver station.
+   * The Op Mode Manager will call this method when it wants a list of all
+   * available op modes. Add your op mode to the list to enable it.
    *
-     * There are two ways you can register an OpMode.
-     *
-     * 1)   Manually, by calling manager.register(displayName, class) here, where
-     *      displayName is the name you want to show up in on the driver station
-     *      and class is the class which should be instantiated to service that OpMode,
-     *
-     * 2)   Dynamically, by annotating your OpModes with @Autonomous or @TeleOp annotations,  
-     *      or using a static @OpModeRegistrar method.
-     *
-     * @param manager the manager to use for manual registration
-     *
-     * @see org.swerverobotics.library.interfaces.Autonomous
-     * @see org.swerverobotics.library.interfaces.TeleOp
-     * @see org.swerverobotics.library.interfaces.Disabled
-     * @see org.swerverobotics.library.interfaces.OpModeRegistrar
-     * @see org.swerverobotics.library.examples.SynchTeleOp
+   * @param manager op mode manager
    */
-  public void register(OpModeManager manager) 
-    {
-    AnnotatedOpModeRegistrar.register(manager);
+  public void register(OpModeManager manager) {
 
     /*
-     * Uncomment any of the following lines if you want to register an op mode,
-     * or do that registration in a static method annotated as @OpModeRegistrar.
+     * register your op modes here.
+     * The first parameter is the name of the op mode
+     * The second parameter is the op mode class property
+     *
+     * If two or more op modes are registered with the same name, the app will display an error.
      */
 
-    //manager.register("NullOp", NullOp.class);
+    /*
+    manager.register("NullOp", NullOp.class);
 
     //manager.register("MatrixK9TeleOp", MatrixK9TeleOp.class);
-    //manager.register("K9TeleOp", K9TeleOp.class);
-    //manager.register("K9Line", K9Line.class);
-    //manager.register ("PushBotAuto", PushBotAuto.class);
-    //manager.register ("PushBotManual", PushBotManual.class);
+    manager.register("K9TeleOp", K9TeleOp.class);
+    manager.register("K9Line", K9Line.class);
+    manager.register ("PushBotAuto", PushBotAuto.class);
+    manager.register ("PushBotManual", PushBotManual.class);
+*/
 
+    manager.register("Autonomous",AutonomousTeleOp.class);
+    manager.register("TankDrive",TankDrive.class);
+    /*
+     * Uncomment any of the following lines if you want to register an op mode.
+     */
     //manager.register("MR Gyro Test", MRGyroTest.class);
+
     //manager.register("AdafruitRGBExample", AdafruitRGBExample.class);
     //manager.register("ColorSensorDriver", ColorSensorDriver.class);
 
@@ -89,23 +84,22 @@ public class FtcOpModeRegister implements OpModeRegister
 
 
     //manager.register("NxtTeleOp", NxtTeleOp.class);
-    
+
     //manager.register("LinearK9TeleOp", LinearK9TeleOp.class);
     //manager.register("LinearIrExample", LinearIrExample.class);
 
-    
+
     //manager.register ("PushBotManual1", PushBotManual1.class);
     //manager.register ("PushBotAutoSensors", PushBotAutoSensors.class);
     //manager.register ("PushBotIrEvent", PushBotIrEvent.class);
-    
+
     //manager.register ("PushBotManualSensors", PushBotManualSensors.class);
     //manager.register ("PushBotOdsDetectEvent", PushBotOdsDetectEvent.class);
     //manager.register ("PushBotOdsFollowEvent", PushBotOdsFollowEvent.class);
-    //manager.register ("PushBotTouchEvent", PushBotTouchEvent.class);    
-    
-    //manager.register("PushBotDriveTouch", PushBotDriveTouch.class);
-    //manager.register("PushBotIrSeek", PushBotIrSeek.class);
-    //manager.register("PushBotSquare", PushBotSquare.class);
+    //manager.register ("PushBotTouchEvent", PushBotTouchEvent.class);
 
+    //manager.register("PushBotDriveTouch", PushBotDriveTouch.java);
+    //manager.register("PushBotIrSeek", PushBotIrSeek.java);
+    //manager.register("PushBotSquare", PushBotSquare.java);
   }
 }

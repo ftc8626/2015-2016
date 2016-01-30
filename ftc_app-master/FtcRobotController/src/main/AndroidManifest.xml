@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           xmlns:tools="http://schemas.android.com/tools"
           package="com.qualcomm.ftcrobotcontroller"
-          android:versionCode="5"
-          android:versionName="1.25">
+          android:versionCode="6"
+          android:versionName="1.5">
 
 
   <uses-permission
@@ -12,6 +12,9 @@
   <uses-permission
     android:name="android.permission.CHANGE_WIFI_STATE"
     android:required="true" />
+  <uses-permission
+      android:name="android.permission.WAKE_LOCK"
+      android:required="true" />
   <uses-permission
     android:name="android.permission.ACCESS_NETWORK_STATE"
     android:required="true" />
@@ -46,15 +49,46 @@
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+
+      <intent-filter>
         <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
       </intent-filter>
+
       <meta-data
         android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
         android:resource="@xml/device_filter" />
     </activity>
+    <activity
+      android:name="com.qualcomm.ftccommon.FtcRobotControllerSettingsActivity"
+      android:label="@string/settings_activity" >
+    </activity>
     <service
       android:name="com.qualcomm.ftccommon.FtcRobotControllerService"
       android:enabled="true" />
+    <activity
+      android:name="com.qualcomm.ftccommon.configuration.FtcLoadFileActivity"
+      android:label="@string/configure_activity"
+      tools:replace="android:label">
+    </activity>
+    <activity
+        android:name="com.qualcomm.ftccommon.FtcWifiChannelSelectorActivity"
+        android:label="@string/title_activity_wifi_channel_selector"
+        tools:replace="android:label">
+    </activity>
+    <activity
+      android:name="com.qualcomm.ftccommon.ConfigWifiDirectActivity"
+      android:label="@string/title_activity_config_wifi_direct" />
+    <activity
+      android:name="com.qualcomm.ftccommon.ViewLogsActivity"
+      android:configChanges="orientation|screenSize"
+      android:label="@string/title_activity_view_logs"
+      tools:replace="android:label">
+      <intent-filter>
+        <action android:name="com.qualcomm.ftcrobotcontroller.VIEW_LOGS"/>
+        <category android:name="android.intent.category.DEFAULT" />
+      </intent-filter>
+    </activity>
   </application>
 
 </manifest>
