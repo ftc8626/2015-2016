@@ -80,7 +80,7 @@ public class TankDrive extends OpMode {
     // position of the arm servo.
     double HOOK_MIN_POSITION = 0;
     double HOOK_MAX_POSITION = .7;
-    double HOOK_INITIAL_POSITION = 0;
+    double HOOK_INITIAL_POSITION = .8;
 
     double tapeMeasureUpDownPosition = HOOK_INITIAL_POSITION;
     // amount to change the tape measure up down servo position by
@@ -223,7 +223,7 @@ public class TankDrive extends OpMode {
         // Extend or retract the hook
         //********
         double hookOutSpeed = 1;
-        double hookInSpeed = -.7;
+        double hookInSpeed = -1;
 
         //clip the hook speed values so that the values never exceed +/- 1
         hookOutSpeed = Range.clip(hookOutSpeed, -1, 1);

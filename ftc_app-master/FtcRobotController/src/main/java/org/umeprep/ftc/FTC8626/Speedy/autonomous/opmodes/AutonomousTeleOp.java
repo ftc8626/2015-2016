@@ -69,7 +69,7 @@ import com.qualcomm.robotcore.util.Range;
 public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
     private final int ANDYMARK_MOTORS_TICKS_PER_REVOLUTION = 1120;
-    private final int DISTANCE_ERROR_TOLERANCE_IN_TICKS = 5;
+    private final int DISTANCE_ERROR_TOLERANCE_IN_TICKS = 50;
     private final int WHEEL_DIAMETER = 4;
     private final double WHEEL_CIRCUMFERENCE = WHEEL_DIAMETER * Math.PI;
 
@@ -154,9 +154,9 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 //            setDebrisPusher(DebrisPusherDirection.Down, false);
             //servoButtonPusher.setPosition(.7);
 
-            servoTapeMeasureUpDown.setPosition(.5);
-            Thread.sleep(1000);
-            servoTapeMeasureUpDown.setPosition(.3);
+            // Get the tape measure to stand up
+            servoTapeMeasureUpDown = hardwareMap.servo.get("Hook Control");
+            servoTapeMeasureUpDown.setPosition(.8);
         }
         catch (Exception ex) {
             telemetry.addData("error",ex.getMessage());
@@ -403,11 +403,11 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     private void moveTowardFloorGoal(MenuChoices menuChoices) throws InterruptedException {
 
         if (menuChoices.getAlliance() == ALLIANCE_RED) {
-            turn(DriveTurnDirection.Left, 78);
+            turn(DriveTurnDirection.Left, 78d);
             move(DriveMoveDirection.Forward, .3, 10);
         }
         else {
-            turn(DriveTurnDirection.Right, 78);
+            turn(DriveTurnDirection.Right, 78d);
             move(DriveMoveDirection.Forward, .3, 10);
         }
     }
@@ -420,7 +420,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         Thread.sleep(500);
 
         // Set the middle brace before moving the pusher down
-        double pusherMiddlePosition = .45;
+        double pusherMiddlePosition = 0;
         servoDebrisPusherMiddle.setPosition(pusherMiddlePosition);
         Thread.sleep(300);
 
@@ -533,9 +533,10 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
     private void moveTowardBeacon(MenuChoices menuChoices) throws InterruptedException {
 
-        //initializeDebrisPusher();
 
-        try {
+        setDebrisPusher(DebrisPusherDirection.Up);
+        setDebrisPusher(DebrisPusherDirection.Down);
+
         if (menuChoices.getAlliance() == ALLIANCE_RED) {
 
             //Thread.sleep(1000);
@@ -543,19 +544,15 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
             if (menuChoices.getStartingPosition() == STARTING_POSITION_RIGHT){
                 move(DriveMoveDirection.Forward, DEFAULT_DRIVE_MOTOR_POWER, 18);
 
-                telemetry.addData("Move", "move completed");
-
-                turn(DriveTurnDirection.Left, 45);
-
-                telemetry.addData("move","turn completed");
-              /*  move(DriveMoveDirection.Forward, .5, 80);
+                turn(DriveTurnDirection.Left, 45.0);
+                move(DriveMoveDirection.Forward, .5, 74);
                 turn(DriveTurnDirection.Left, 41.5);
-              */  move(DriveMoveDirection.Forward, .5, 5.7);
+                move(DriveMoveDirection.Forward, .5, 10);
 
             }
             else {
                 move(DriveMoveDirection.Forward, DEFAULT_DRIVE_MOTOR_POWER, 36);
-                turn(DriveTurnDirection.Left, 43);
+                turn(DriveTurnDirection.Left, 43.0);
                 move(DriveMoveDirection.Forward, .5, 52);
                 turn(DriveTurnDirection.Left, 41.5);
                 move(DriveMoveDirection.Forward, .5, 2.6);
@@ -569,14 +566,14 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
             if (menuChoices.getStartingPosition() == STARTING_POSITION_LEFT){
                 move(DriveMoveDirection.Forward, DEFAULT_DRIVE_MOTOR_POWER, 18);
-                turn(DriveTurnDirection.Right, 45);
+                turn(DriveTurnDirection.Right, 45.0);
                 move(DriveMoveDirection.Forward, .5, 78);
                 turn(DriveTurnDirection.Right, 40.5);
                 move(DriveMoveDirection.Forward, .5, 5.7);
             }
             else {
                 move(DriveMoveDirection.Forward, DEFAULT_DRIVE_MOTOR_POWER, 32);
-                turn(DriveTurnDirection.Right, 45);
+                turn(DriveTurnDirection.Right, 45.0);
                 move(DriveMoveDirection.Forward, .5, 48);
                 turn(DriveTurnDirection.Right, 41.5);
                 move(DriveMoveDirection.Forward, .5, 7.4);
@@ -593,10 +590,6 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
         //move(DriveMoveDirection.Forward, .5, 36); //96
 
-
-        } catch (Exception ex) {
-            telemetry.addData("Error in move toward beacon: ", ex.getMessage());
-        }
     }
 
     private void readBeaconColor() {
@@ -639,12 +632,11 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
         try {
 
-
         motorRight.setMode(DcMotorController.RunMode.RUN_USING_ENCODERS);
         motorLeft.setMode(DcMotorController.RunMode.RUN_USING_ENCODERS);
 
-        //motorRight.setMode(DcMotorController.RunMode.RESET_ENCODERS);
-        //motorLeft.setMode(DcMotorController.RunMode.RESET_ENCODERS);
+        motorRight.setMode(DcMotorController.RunMode.RESET_ENCODERS);
+        motorLeft.setMode(DcMotorController.RunMode.RESET_ENCODERS);
 
         double distanceInRevolutions = distanceInInches / WHEEL_CIRCUMFERENCE;
         int distanceInTicks = (int)Math.round(distanceInRevolutions * ANDYMARK_MOTORS_TICKS_PER_REVOLUTION);
@@ -782,150 +774,149 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         motorLeft.setPowerFloat();
     }
 */
+//
+//    private void turn(DriveTurnDirection direction, double turnAngle) throws InterruptedException {
+//
+//        try {
+//
+//        telemetry.addData("turn","starting turn");
+//
+//        motorRight.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
+//        motorLeft.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
+//
+//        telemetry.addData("turn","running without encoders");
+//
+//        turnAngle = Range.clip(turnAngle, 0, 180);
+//        turnAngle = (direction == DriveTurnDirection.Left) ? -turnAngle : turnAngle;
+//
+//        telemetry.addData("turn","turn angle: " + turnAngle);
+//
+//        // Adjust the turnPowerFactor based on the smoothness of floor surface
+//        double turnPower = Range.clip(.15 * TURN_POWER_FACTOR, -1, 1);
+//
+//        telemetry.addData("turn","turn power: " + turnPower);
+//        double initialHeading = getHeading();
+//
+//        double currentHeading = initialHeading;
+//
+//        double newHeading = initialHeading + turnAngle;
+//
+//        telemetry.addData("turn","new Heading: " + newHeading);
+//
+//        double desiredHeading =  normalizeDegrees(newHeading);
+//
+//        double headingDifference = getTurnHeadingDifference(currentHeading, desiredHeading);
+//
+//        while (headingDifference > TURN_HEADING_TOLERANCE_DEGREES) {
+//
+//            if (Math.abs(headingDifference) < 60) {
+//                turnPower = .1 * TURN_POWER_FACTOR;
+//            } else if (Math.abs(headingDifference) < 30) {
+//                turnPower = .08 * TURN_POWER_FACTOR;
+//            }
+//
+//            double desiredMinusCurrent = desiredHeading - currentHeading;
+//            if (desiredMinusCurrent > 180 || (desiredMinusCurrent < 0 && desiredMinusCurrent > -180)) {
+//            //if (direction == DriveTurnDirection.Left) {
+////                telemetry.addData("Turn", "Turning left");
+//                motorRight.setPower(turnPower);
+//                motorLeft.setPower(0);
+//            } else if ((desiredMinusCurrent   > 0 && desiredMinusCurrent <= 180) || desiredMinusCurrent <= -180) {
+////                telemetry.-addData("Turn", "Turning right");
+//                // if the signal is to the right move right
+//                motorRight.setPower(0);
+//                motorLeft.setPower(turnPower);
+//            } else {
+//                stopDriveMotors();
+//                Thread.sleep(300);
+//            }
+//
+//            currentHeading = getHeading();
+//            headingDifference = getTurnHeadingDifference(currentHeading, desiredHeading);
+//
+//            telemetry.addData("Turn", "Initial heading: " + initialHeading);
+//            telemetry.addData("Turn", "Current heading: " + currentHeading);
+//            telemetry.addData("Turn", "Desired heading: " + desiredHeading);
+//            telemetry.addData("Turn", "Heading difference: " + headingDifference);
+//            //telemetry.update();
+//        }
+//
+//        } catch (Exception ex) {
+//            telemetry.addData("Error creating IMU: ", ex.getMessage());
+//        }
+//
+//        stopDriveMotors();
+//        Thread.sleep(300);
+//    }
+//
 
-    private void turn(DriveTurnDirection direction, double turnAngle) throws InterruptedException {
+    private void turn(DriveTurnDirection robotTurnDirection, Double turnAngle) throws InterruptedException {
 
-        try {
+       // motorRight.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
+        //motorLeft.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
 
-        telemetry.addData("turn","starting turn");
+        //final double headingToleranceDegrees = 1;
+       // final long delayToAllowTurn = 20;
 
-        motorRight.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
-        motorLeft.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
+        motorRight.setMode(DcMotorController.RunMode.RUN_USING_ENCODERS);
+        motorLeft.setMode(DcMotorController.RunMode.RUN_USING_ENCODERS);
+        motorRight.setMode(DcMotorController.RunMode.RESET_ENCODERS);
+        motorLeft.setMode(DcMotorController.RunMode.RESET_ENCODERS);
 
-        telemetry.addData("turn","running without encoders");
 
-        turnAngle = Range.clip(turnAngle, 0, 180);
-        turnAngle = (direction == DriveTurnDirection.Left) ? -turnAngle : turnAngle;
+        double distanceInInches = Math.PI * turnAngle*13.75/180;
+        double distanceInRevolutions = distanceInInches / WHEEL_CIRCUMFERENCE;
+        int distanceInTicks = (int)Math.round(distanceInRevolutions * ANDYMARK_MOTORS_TICKS_PER_REVOLUTION);
 
-        telemetry.addData("turn","turn angle: " + turnAngle);
+        int currentRightPosition = motorRight.getCurrentPosition();
+        int currentLeftPosition = motorLeft.getCurrentPosition();
 
-        // Adjust the turnPowerFactor based on the smoothness of floor surface
-        double turnPower = Range.clip(.15 * TURN_POWER_FACTOR, -1, 1);
+        int targetRightPosition = currentRightPosition;
+        int targetLeftPosition = currentLeftPosition;
 
-        telemetry.addData("turn","turn power: " + turnPower);
-        double initialHeading = getHeading();
+        if (robotTurnDirection == DriveTurnDirection.Left) {
+            targetRightPosition = currentRightPosition + distanceInTicks;
+            motorRight.setTargetPosition(targetRightPosition);
+            motorRight.setMode(DcMotorController.RunMode.RUN_TO_POSITION);
+            double rightPositionDifference = motorRight.getCurrentPosition() - targetRightPosition;
+            while (Math.abs(rightPositionDifference) > DISTANCE_ERROR_TOLERANCE_IN_TICKS) {
 
-        double currentHeading = initialHeading;
+                telemetry.addData("move", "Right position: " + currentRightPosition);
+                telemetry.addData("move", "Target Right position: " + targetRightPosition);
+                double initialMovePower = .5;
+                double rightPower = Range.clip(initialMovePower * MOVE_POWER_FACTOR, -1, 1);
 
-        double newHeading = initialHeading + turnAngle;
-
-        telemetry.addData("turn","new Heading: " + newHeading);
-
-        double desiredHeading =  normalizeDegrees(newHeading);
-
-        double headingDifference = getTurnHeadingDifference(currentHeading, desiredHeading);
-
-        while (headingDifference > TURN_HEADING_TOLERANCE_DEGREES) {
-
-            if (Math.abs(headingDifference) < 60) {
-                turnPower = .1 * TURN_POWER_FACTOR;
-            } else if (Math.abs(headingDifference) < 30) {
-                turnPower = .08 * TURN_POWER_FACTOR;
+                setMotorPower(rightPower, 0);
+                rightPositionDifference = motorRight.getCurrentPosition() - targetRightPosition;
             }
-
-            double desiredMinusCurrent = desiredHeading - currentHeading;
-            if (desiredMinusCurrent > 180 || (desiredMinusCurrent < 0 && desiredMinusCurrent > -180)) {
-            //if (direction == DriveTurnDirection.Left) {
-//                telemetry.addData("Turn", "Turning left");
-                motorRight.setPower(turnPower);
-                motorLeft.setPower(0);
-            } else if ((desiredMinusCurrent   > 0 && desiredMinusCurrent <= 180) || desiredMinusCurrent <= -180) {
-//                telemetry.addData("Turn", "Turning right");
-                // if the signal is to the right move right
-                motorRight.setPower(0);
-                motorLeft.setPower(turnPower);
-            } else {
-                stopDriveMotors();
-                Thread.sleep(300);
-            }
-
-            currentHeading = getHeading();
-            headingDifference = getTurnHeadingDifference(currentHeading, desiredHeading);
-
-            telemetry.addData("Turn", "Initial heading: " + initialHeading);
-            telemetry.addData("Turn", "Current heading: " + currentHeading);
-            telemetry.addData("Turn", "Desired heading: " + desiredHeading);
-            telemetry.addData("Turn", "Heading difference: " + headingDifference);
-            //telemetry.update();
         }
 
-        } catch (Exception ex) {
-            telemetry.addData("Error creating IMU: ", ex.getMessage());
+        else {
+            targetLeftPosition = currentLeftPosition + distanceInTicks;
+            motorLeft.setTargetPosition(targetLeftPosition);
+            motorLeft.setMode(DcMotorController.RunMode.RUN_TO_POSITION);
+            double leftPositionDifference = motorLeft.getCurrentPosition() - targetLeftPosition;
+            while (Math.abs(leftPositionDifference) > DISTANCE_ERROR_TOLERANCE_IN_TICKS) {
+
+                telemetry.addData("move", "Left position: " + currentLeftPosition);
+                telemetry.addData("move", "Target Left position: " + targetLeftPosition);
+                double initialMovePower = .5;
+                double leftPower = Range.clip(initialMovePower * MOVE_POWER_FACTOR, -1, 1);
+                //double leftPower = rightPower;
+
+                setMotorPower(0, leftPower);
+
+                leftPositionDifference = motorLeft.getCurrentPosition() - targetLeftPosition;
+
+            }
         }
 
-        stopDriveMotors();
-        Thread.sleep(300);
+        // Start slow
+
+
+
     }
 
-/*
-    private void turn(DriveTurnDirection direction, float turnAngle) throws InterruptedException {
-
-        motorRight.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
-        motorLeft.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
-
-        final double headingToleranceDegrees = 1;
-        final long delayToAllowTurn = 20;
-
-        double rightPower = .5;
-        double leftPower = .5;
-        double scaledPowerFactor = 1;
-
-        double initialHeading = getHeading();
-        telemetry.addData("Turn", "Initial heading: " + initialHeading);
-
-        double currentHeading = initialHeading;
-        double desiredHeading = 0;
-
-        turnAngle = Range.clip(turnAngle, 0, 180);
-
-        if (direction == DriveTurnDirection.Left)
-            desiredHeading = normalizeDegrees(initialHeading - turnAngle);
-        else
-            desiredHeading = normalizeDegrees(initialHeading + turnAngle);
-
-        double headingDifference = getTurnHeadingDifference(currentHeading, desiredHeading);
-
-        while (headingDifference > headingToleranceDegrees) {
-
-            // if the heading is greater than desired turn left
-            rightPower = rightPower * scaledPowerFactor;
-            leftPower = leftPower * scaledPowerFactor;
-
-            telemetry.addData("Turn", "Desired heading: " + desiredHeading);
-            telemetry.addData("Turn", "Current heading: " + currentHeading);
-            telemetry.update();
-
-            double desiredMinusCurrent = desiredHeading - currentHeading;
-            if (desiredMinusCurrent > 180 || (desiredMinusCurrent < 0 && desiredMinusCurrent > -180)) {
-                telemetry.addData("Turn", "Turning left");
-                motorRight.setPower(rightPower);
-                motorLeft.setPower(0);
-            } else if ((desiredMinusCurrent   > 0 && desiredMinusCurrent <= 180) || desiredMinusCurrent <= -180) {
-                telemetry.addData("Turn", "Turning right");
-                // if the signal is to the right move right
-                motorRight.setPower(0);
-                motorLeft.setPower(leftPower);
-            } else {
-                telemetry.addData("Turn", "Off power");
-                motorRight.setPower(0);
-                motorLeft.setPower(0);
-            }
-
-            Thread.sleep(delayToAllowTurn);
-
-            currentHeading = getHeading();
-            headingDifference = getTurnHeadingDifference(currentHeading, desiredHeading);
-
-            telemetry.addData("Turn", "Current heading: " + currentHeading);
-            telemetry.addData("Turn", "Heading difference: " + headingDifference);
-            telemetry.update();
-        }
-
-        // stop the motors
-        motorRight.setPower(0);
-        motorLeft.setPower(0);
-    }
-*/
     private int getMoveHeadingDifference(double currentHeading, double initialHeading) {
         double diff = currentHeading - initialHeading;
         double absDiff = Math.abs(diff);
