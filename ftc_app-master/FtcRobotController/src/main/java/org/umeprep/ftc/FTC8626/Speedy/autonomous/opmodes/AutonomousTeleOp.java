@@ -27,9 +27,9 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. /
 
-package org.umeprep.ftc.FTC8626.Speedy.autonomous.opmodes;
+/* package org.umeprep.ftc.FTC8626.Speedy.autonomous.opmodes;
 
 import android.graphics.Color;
 
@@ -64,8 +64,9 @@ import com.qualcomm.robotcore.util.Range;
 /**
  * Linear Tele Op Mode for Autonomous movement
  * <p/>
- */
+ /
 //@TeleOp(name="AutonomousTeleOp", group="FTC8626")
+/*
 public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
     private final int ANDYMARK_MOTORS_TICKS_PER_REVOLUTION = 1120;
@@ -85,7 +86,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
     private final double TURN_POWER_FACTOR = 1.5;
 
-    private final String ALLIANCE = "ALLIANCE";
+  /*  private final String ALLIANCE = "ALLIANCE";
     private final String ALLIANCE_RED = "RED";
     private final String ALLIANCE_BLUE = "BLUE";
     private final String STARTING_POSITION = "STARTING_POSITION";
@@ -93,7 +94,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     private final String STARTING_POSITION_RIGHT = "RIGHT";
     //public boolean v_warning_generated = false;
     //public String v_warning_message;
-
+/
     // Here we have state we use for updating the dashboard. The first of these is important
     // to read only once per update, as its acquisition is expensive. The remainder, though,
     // could probably be read once per item, at only a small loss in display accuracy.
@@ -102,7 +103,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     //int loopCycles;
     //int i2cCycles;
     //double ms;
-
+/*
     // Motor variables
     private DcMotor motorRight;
     private DcMotor motorLeft;
@@ -117,7 +118,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     //private Servo servoButtonPusher;
 
     // Menu variables
-    private OptionMenu menu;
+  //  private OptionMenu menu;
 
     //
     // Sensor variables
@@ -162,7 +163,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
             telemetry.addData("error",ex.getMessage());
             telemetry.update();
         }
-        */
+
     }
 
     @Override
@@ -203,7 +204,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         InitializeServos();
     }
 
-    private void InitializeMenu() throws InterruptedException {
+  /*  private void InitializeMenu() throws InterruptedException {
 
         // This menu code was shared with us by team 4290 lasarobotics (thanks!)
         OptionMenu.Builder builder = new OptionMenu.Builder(hardwareMap.appContext);
@@ -227,7 +228,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         //Setup a NumberCategory
         NumberCategory time = new NumberCategory("Time");
         builder.addCategory(time);
-*/
+/
         //Create menu
         menu = builder.create();
         //Display menu
@@ -249,7 +250,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         }
 
         telemetry.update();
- */
+ /
 /*  Keep this in case we need the touch sensor to prevent collision damage on the button pusher
         try {
             v_sensor_touch = hardwareMap.touchSensor.get("Touch_1");
@@ -269,7 +270,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
             v_sensor_color = null;
         }
-*/
+
         try {
             v_sensor_distance = hardwareMap.opticalDistanceSensor.get("ODS");
         } catch (Exception p_exception) {
@@ -341,7 +342,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
     /**
      * Access the amount of light detected by the Optical Distance Sensor.
-     */
+     /
     double getLightDetected() {
         double l_return = 0;
 
@@ -383,18 +384,18 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
     private void makeSomeMoves() throws Exception, InterruptedException {
 
-        MenuChoices menuChoices = getMenuChoices();
+ //       MenuChoices menuChoices = getMenuChoices();
 
-        moveTowardBeacon(menuChoices);
+ //       moveTowardBeacon(menuChoices);
 
        // prepareToPushButton();
        // readBeaconColor();
 
         dumpClimbers();
 
-        pushBeaconButton(menuChoices);
+ //       pushBeaconButton(menuChoices);
 
-        moveTowardFloorGoal(menuChoices);
+ //       moveTowardFloorGoal(menuChoices);
 
         stopDriveMotors();
 
@@ -694,7 +695,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
 /*            telemetry.addData("currentHeading: ", currentHeading);
             telemetry.addData("headingDiff: ", headingDifference);
-*/
+/
             telemetry.addData("move", "Right position: " + currentRightPosition);
             telemetry.addData("move", "Left position: " + currentLeftPosition);
             telemetry.addData("move", "Target Right position: " + targetRightPosition);
@@ -713,7 +714,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
                 leftPower += MOVE_POWER_HEADING_ADJUSTMENT;
                 rightPower -= MOVE_POWER_HEADING_ADJUSTMENT;
             }
-*/
+/
 
             if (rightPositionDifference > DISTANCE_ERROR_TOLERANCE_IN_TICKS)
                 rightPower = -rightPower;
@@ -773,7 +774,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         motorRight.setPowerFloat();
         motorLeft.setPowerFloat();
     }
-*/
+/
 //
 //    private void turn(DriveTurnDirection direction, double turnAngle) throws InterruptedException {
 //
@@ -955,7 +956,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
         return Range.clip(currentHeading, 0, 360);
     }
-    */
+    /
 
     private double getHeading() {
 
@@ -982,7 +983,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
      * <p/>
      * A comma will be added before the specified message if the message isn't
      * empty.
-     */
+     /
 /*    void m_warning_message(String p_exception_message)
 
     {
@@ -993,7 +994,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         v_warning_message += p_exception_message;
 
     } // m_warning_message
-*/
+/
 
     // Swerve code
 //----------------------------------------------------------------------------------------------
@@ -1113,7 +1114,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
                         return formatPosition(position.z);
                     }
                 }));
-*/
+/
     }
 
     String formatAngle(double angle)
@@ -1143,7 +1144,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     // Utility
     //----------------------------------------------------------------------------------------------
 
-    /** Normalize the angle into the range [-180,180) */
+    / Normalize the angle into the range [-180,180) /
     double normalizeDegrees(double degrees)
     {
         if (degrees >= 360.0) degrees -= 360.0;
@@ -1155,7 +1156,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         return radians * 180.0 / Math.PI;
     }
 
-    /** Turn a system status into something that's reasonable to show in telemetry */
+    /** Turn a system status into something that's reasonable to show in telemetry /
     String decodeStatus(int status)
     {
         switch (status)
@@ -1171,7 +1172,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         return "unk";
     }
 
-    /** Turn a calibration code into something that is reasonable to show in telemetry */
+    /** Turn a calibration code into something that is reasonable to show in telemetry
     String decodeCalibration(int status)
     {
         StringBuilder result = new StringBuilder();
@@ -1187,3 +1188,4 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         return result.toString();
     }
 }
+*/

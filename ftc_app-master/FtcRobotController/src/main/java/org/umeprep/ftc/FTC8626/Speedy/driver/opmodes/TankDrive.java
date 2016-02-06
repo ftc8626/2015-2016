@@ -62,7 +62,7 @@ public class TankDrive extends OpMode {
 
     private Servo servoDebrisPusherRight;
     private Servo servoDebrisPusherLeft;
-    private Servo servoDebrisPusherMiddle;
+   // private Servo servoDebrisPusherMiddle;
 
     public final double DRIVE_MOTOR_POWER_FACTOR = .7;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
     double hookMotorPowerFactor = 1;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
@@ -81,6 +81,9 @@ public class TankDrive extends OpMode {
     double HOOK_MIN_POSITION = 0;
     double HOOK_MAX_POSITION = .7;
     double HOOK_INITIAL_POSITION = .8;
+    double HOOK_X_POSITION = .14;
+    // Intended for initial mountain ascent
+    double HOOK_AX_POSITION = .37;
 
     double tapeMeasureUpDownPosition = HOOK_INITIAL_POSITION;
     // amount to change the tape measure up down servo position by
@@ -136,7 +139,7 @@ public class TankDrive extends OpMode {
 
         servoDebrisPusherRight = hardwareMap.servo.get("Debris Pusher Right");
         servoDebrisPusherLeft = hardwareMap.servo.get("Debris Pusher Left");
-        servoDebrisPusherMiddle = hardwareMap.servo.get("Debris Pusher Middle");
+       // servoDebrisPusherMiddle = hardwareMap.servo.get("Debris Pusher Middle");
 
         try {
             setServoPositions();
@@ -191,12 +194,12 @@ public class TankDrive extends OpMode {
         rightStick = Utility.scaleInput(rightStick);
         leftStick =  Utility.scaleInput(leftStick);
 
-        if (gamepad2.left_bumper) {
+        if (gamepad1.dpad_left && gamepad1.a) {
             robotDirection = DriveMoveDirection.Backward;
             wheelMotor1.setDirection(DcMotor.Direction.REVERSE);
             wheelMotor2.setDirection(DcMotor.Direction.FORWARD);
         }
-        else if (gamepad2.right_bumper) {
+        else if (gamepad1.dpad_right && gamepad1.a) {
             robotDirection = DriveMoveDirection.Forward;
             wheelMotor1.setDirection(DcMotor.Direction.FORWARD);
             wheelMotor2.setDirection(DcMotor.Direction.REVERSE);
@@ -223,11 +226,11 @@ public class TankDrive extends OpMode {
         // Extend or retract the hook
         //********
         double hookOutSpeed = 1;
-        double hookInSpeed = -1;
+        double hookInSpeed = -.7;
 
         //clip the hook speed values so that the values never exceed +/- 1
-        hookOutSpeed = Range.clip(hookOutSpeed, -1, 1);
-        hookInSpeed = Range.clip(hookInSpeed, -1, 1);
+     //   hookOutSpeed = Range.clip(hookOutSpeed, -1, 1);
+     //   hookInSpeed = Range.clip(hookInSpeed, -1, 1);
 
         //set the hook motor power
         if (gamepad1.dpad_up) {
@@ -242,9 +245,14 @@ public class TankDrive extends OpMode {
                 setDebrisPusher(DebrisPusherDirection.Up,false);
             } catch (InterruptedException ex) {}
 
+
             // Set the wheels to "float" so they spin freely when going up the mountain (ramp)
-            wheelMotor1.setPowerFloat();
+            //wheelMotor1.setPowerFloat();
             wheelMotor2.setPowerFloat();
+
+            wheelMotor1.setPower(-.08);
+            //wheelMotor2.setPower(-.05);
+
         }
         else {
             motorHook.setPower(0);
@@ -260,12 +268,17 @@ public class TankDrive extends OpMode {
         if (gamepad1.y) {
             tapeMeasureUpDownPosition += tapeMeasureUpDownDelta;
         }
+
         else if (gamepad1.b) {
             tapeMeasureUpDownPosition -= tapeMeasureUpDownDelta;
         }
 
         if (gamepad1.x){
-            tapeMeasureUpDownPosition = HOOK_INITIAL_POSITION;
+            tapeMeasureUpDownPosition = HOOK_X_POSITION;
+        }
+
+        if (gamepad1.x && gamepad1.a){
+            tapeMeasureUpDownPosition = HOOK_AX_POSITION;
         }
 
         //clip the hook speed values so that the values never go below 0 or above .6
@@ -279,10 +292,10 @@ public class TankDrive extends OpMode {
         // Change the position of the debris pusher
         // ********
         try {
-            if (gamepad1.left_trigger > 0) {
+            if (gamepad1.left_trigger > 0 && gamepad1.a) {
                 setDebrisPusher(DebrisPusherDirection.Up, false);
             }
-            else if (gamepad1.right_trigger > 0 && !gamepad1.dpad_up && !gamepad1.dpad_down) {
+            else if (gamepad1.right_trigger > 0 && gamepad1.a) {
                 setDebrisPusher(DebrisPusherDirection.Up, false);
                 setDebrisPusher(DebrisPusherDirection.Down);
             }
@@ -292,14 +305,10 @@ public class TankDrive extends OpMode {
             telemetry.addData("Error",ex.getMessage());
         }
 
-        //
-        //
-        //
-
         // ********
         // Dump the climbers
         // ********
-        if (gamepad1.right_bumper && gamepad1.a)
+        if (gamepad1.back)
         {
             try {
                     dumpClimbers();
@@ -309,7 +318,7 @@ public class TankDrive extends OpMode {
                 telemetry.addData("Error",ex.getMessage());
             }
         }
-        else if (gamepad1.left_bumper)
+        else if (gamepad1.start)
         {
             try {
                 retractDumper();
@@ -351,9 +360,9 @@ public class TankDrive extends OpMode {
         Thread.sleep(500);
 
         // Set the middle brace before moving the pusher down
-        double pusherMiddlePosition = .45;
-        servoDebrisPusherMiddle.setPosition(pusherMiddlePosition);
-        Thread.sleep(300);
+       // double pusherMiddlePosition = .45;
+       // servoDebrisPusherMiddle.setPosition(pusherMiddlePosition);
+      //  Thread.sleep(300);
 
         // Move the pusher down
         servoDebrisPusherRight.setPosition(.9);
@@ -366,7 +375,7 @@ public class TankDrive extends OpMode {
 
     private void setDebrisPusher(DebrisPusherDirection direction, boolean bracePusher) throws InterruptedException {
 
-        double pusherMiddlePosition = .45;
+     //   double pusherMiddlePosition = .45;
 
         if (direction == DebrisPusherDirection.Up) {
             // Move the pusher up
@@ -374,19 +383,19 @@ public class TankDrive extends OpMode {
             servoDebrisPusherLeft.setPosition(.9);
 
             // Move the pusher up before moving the middle brace out of the way
-            Thread.sleep(500);
-            servoDebrisPusherMiddle.setPosition(0);
+            //Thread.sleep(500);
+            //servoDebrisPusherMiddle.setPosition(0);
 
         } else {
 
-            if (bracePusher) {
+         /*   if (bracePusher) {
                 // Set the middle brace before moving the pusher down
                 servoDebrisPusherMiddle.setPosition(pusherMiddlePosition);
                 Thread.sleep(500);
             } else {
                 servoDebrisPusherMiddle.setPosition(0);
             }
-
+*/
             // Move the pusher up or down
             servoDebrisPusherRight.setPosition(.9);
             servoDebrisPusherLeft.setPosition(.15);
