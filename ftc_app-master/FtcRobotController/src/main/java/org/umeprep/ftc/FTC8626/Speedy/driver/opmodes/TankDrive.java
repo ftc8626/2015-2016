@@ -1,5 +1,4 @@
 
-
 /* Copyright (c) 2014 Qualcomm Technologies Inc
 
 All rights reserved.
@@ -50,7 +49,7 @@ import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveMoveDirection;
  */
 
 
-//Ian is the best, Then Andrew, but Andre is our Leader!
+//Blade is the best, Then Ian, but Andre is our Leader!
 
 //@TeleOp(name="TankDrive", group="FTC8626")
 public class TankDrive extends OpMode {
@@ -62,42 +61,27 @@ public class TankDrive extends OpMode {
 
     private Servo servoDebrisPusherRight;
     private Servo servoDebrisPusherLeft;
-   // private Servo servoDebrisPusherMiddle;
 
     public final double DRIVE_MOTOR_POWER_FACTOR = .7;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
     double hookMotorPowerFactor = 1;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
-
-    //DcMotor motorRightKick;
-    //DcMotor motorLeftKick;
 
     ////anything with four slashes is part of the servo mechanics
     private Servo servoTapeMeasureUpDown;
     private Servo servoClimberDumper;
     private boolean dumperClicked = false;
-    //private Servo servoButtonPusher;
-
 
     // position of the arm servo.
     double HOOK_MIN_POSITION = 0;
-    double HOOK_MAX_POSITION = .7;
-    double HOOK_INITIAL_POSITION = .8;
-    double HOOK_X_POSITION = .14;
+    double HOOK_MAX_POSITION = 1;
+
     // Intended for initial mountain ascent
     double HOOK_AX_POSITION = .37;
 
-    double tapeMeasureUpDownPosition = HOOK_INITIAL_POSITION;
+    double tapeMeasureUpDownPosition = HOOK_MIN_POSITION;
     // amount to change the tape measure up down servo position by
     double tapeMeasureUpDownDelta = 0.0008;
 
     double dumpClimbersPosition;
-
-
-    /**
-     * Constructor
-     */
-    public TankDrive() {
-
-    }
 
     /*
      * Code to run when the op mode is first enabled goes here
@@ -107,18 +91,6 @@ public class TankDrive extends OpMode {
     @Override
     public void init()  {
 
-		/*
-		 * Use the hardwareMap to get the dc motors and servos by name. Note
-		 * that the names of the devices must match the names used when you
-		 * configured your robot and created the configuration file.
-		 */
-
-		/*
-		 * For the demo Tetrix K9 bot we assume the following,
-		 *   There are two motors "motor_1" and "motor_2"
-		 *   "motor_1" is on the right side of the bot.
-		 *   "motor_2" is on the left side of the bot and reversed.
-		 */
         wheelMotor1 = hardwareMap.dcMotor.get("Wheel 1");
         wheelMotor2 = hardwareMap.dcMotor.get("Wheel 2");
 
@@ -159,9 +131,7 @@ public class TankDrive extends OpMode {
 
     private void setServoPositions() throws InterruptedException {
 
-        servoTapeMeasureUpDown.setPosition(HOOK_INITIAL_POSITION);
-        // servoClimberDumper.setPosition(0);
-        //servoButtonPusher.setPosition(0);
+        servoTapeMeasureUpDown.setPosition(HOOK_MIN_POSITION);
 
         initializeDebrisPusher();
     }
@@ -173,10 +143,6 @@ public class TankDrive extends OpMode {
      */
     @Override
     public void loop() {
-
-		/*
-		 * Gamepad 1
-		 */
 
         //*********
         // Drive with joysticks
@@ -226,7 +192,7 @@ public class TankDrive extends OpMode {
         // Extend or retract the hook
         //********
         double hookOutSpeed = 1;
-        double hookInSpeed = -.7;
+        double hookInSpeed = -.8;
 
         //clip the hook speed values so that the values never exceed +/- 1
      //   hookOutSpeed = Range.clip(hookOutSpeed, -1, 1);
@@ -236,23 +202,19 @@ public class TankDrive extends OpMode {
         if (gamepad1.dpad_up) {
             motorHook.setPower(hookOutSpeed * hookMotorPowerFactor);
             try {
-                setDebrisPusher(DebrisPusherDirection.Up,false);
+                setDebrisPusher(DebrisPusherDirection.Up);
             } catch (InterruptedException ex) {}
         }
         else if (gamepad1.dpad_down) {
             motorHook.setPower(hookInSpeed * hookMotorPowerFactor);
             try {
-                setDebrisPusher(DebrisPusherDirection.Up,false);
+                setDebrisPusher(DebrisPusherDirection.Up);
             } catch (InterruptedException ex) {}
 
 
             // Set the wheels to "float" so they spin freely when going up the mountain (ramp)
-            //wheelMotor1.setPowerFloat();
             wheelMotor2.setPowerFloat();
-
             wheelMotor1.setPower(-.08);
-            //wheelMotor2.setPower(-.05);
-
         }
         else {
             motorHook.setPower(0);
@@ -268,13 +230,12 @@ public class TankDrive extends OpMode {
         if (gamepad1.y) {
             tapeMeasureUpDownPosition += tapeMeasureUpDownDelta;
         }
-
         else if (gamepad1.b) {
             tapeMeasureUpDownPosition -= tapeMeasureUpDownDelta;
         }
 
         if (gamepad1.x){
-            tapeMeasureUpDownPosition = HOOK_X_POSITION;
+            tapeMeasureUpDownPosition = HOOK_MIN_POSITION;
         }
 
         if (gamepad1.x && gamepad1.a){
@@ -284,19 +245,15 @@ public class TankDrive extends OpMode {
         //clip the hook speed values so that the values never go below 0 or above .6
         tapeMeasureUpDownPosition = Range.clip(tapeMeasureUpDownPosition, HOOK_MIN_POSITION, HOOK_MAX_POSITION);
         servoTapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
-        //
-        //
-        //
 
         // ********
         // Change the position of the debris pusher
         // ********
         try {
             if (gamepad1.left_trigger > 0 && gamepad1.a) {
-                setDebrisPusher(DebrisPusherDirection.Up, false);
+                setDebrisPusher(DebrisPusherDirection.Up);
             }
             else if (gamepad1.right_trigger > 0 && gamepad1.a) {
-                setDebrisPusher(DebrisPusherDirection.Up, false);
                 setDebrisPusher(DebrisPusherDirection.Down);
             }
         }
@@ -311,7 +268,7 @@ public class TankDrive extends OpMode {
         if (gamepad1.back)
         {
             try {
-                    dumpClimbers();
+                dumpClimbers();
             }
             catch (InterruptedException ex)
             {
@@ -328,18 +285,6 @@ public class TankDrive extends OpMode {
                 telemetry.addData("Error",ex.getMessage());
             }
         }
-
-
-
-		/*
-		 * Send telemetry data back to driver station. Note that if we are using
-		 * a legacy NXT-compatible motor controller, then the getPower() method
-		 * will return a null value. The legacy NXT-compatible motor controllers
-		 * are currently write only.
-		 */
-        // telemetry.addData("Text", "*** Robot Data***");
-        //telemetry.addData("left tgt pwr",  "left  pwr: " + String.format("%.2f", leftStick));
-        //telemetry.addData("right tgt pwr", "right pwr: " + String.format("%.2f", rightStick));
     }
 
     /*
@@ -349,63 +294,35 @@ public class TankDrive extends OpMode {
      */
     @Override
     public void stop() {
-
+        try {
+            setDebrisPusher(DebrisPusherDirection.Down);
+        } catch (InterruptedException ex) {}
     }
 
     private void initializeDebrisPusher() throws InterruptedException {
 
-        // Move the pusher up
-        servoDebrisPusherRight.setPosition(.15);
-        servoDebrisPusherLeft.setPosition(.9);
-        Thread.sleep(500);
-
-        // Set the middle brace before moving the pusher down
-       // double pusherMiddlePosition = .45;
-       // servoDebrisPusherMiddle.setPosition(pusherMiddlePosition);
-      //  Thread.sleep(300);
-
         // Move the pusher down
-        servoDebrisPusherRight.setPosition(.9);
-        servoDebrisPusherLeft.setPosition(.15);
+        servoDebrisPusherRight.setPosition(.85);
+        servoDebrisPusherLeft.setPosition(.2);
     }
 
     private void setDebrisPusher(DebrisPusherDirection direction) throws InterruptedException {
-        setDebrisPusher(direction, true);
-    }
-
-    private void setDebrisPusher(DebrisPusherDirection direction, boolean bracePusher) throws InterruptedException {
-
-     //   double pusherMiddlePosition = .45;
 
         if (direction == DebrisPusherDirection.Up) {
             // Move the pusher up
-            servoDebrisPusherRight.setPosition(.15);
-            servoDebrisPusherLeft.setPosition(.9);
-
-            // Move the pusher up before moving the middle brace out of the way
-            //Thread.sleep(500);
-            //servoDebrisPusherMiddle.setPosition(0);
-
+            servoDebrisPusherRight.setPosition(.2);
+            servoDebrisPusherLeft.setPosition(.85);
         } else {
-
-         /*   if (bracePusher) {
-                // Set the middle brace before moving the pusher down
-                servoDebrisPusherMiddle.setPosition(pusherMiddlePosition);
-                Thread.sleep(500);
-            } else {
-                servoDebrisPusherMiddle.setPosition(0);
-            }
-*/
             // Move the pusher up or down
-            servoDebrisPusherRight.setPosition(.9);
-            servoDebrisPusherLeft.setPosition(.15);
+            servoDebrisPusherRight.setPosition(.85);
+            servoDebrisPusherLeft.setPosition(.2);
         }
     }
 
     private void dumpClimbers() throws InterruptedException {
 
         dumpClimbersPosition += .005;
-        dumpClimbersPosition = Range.clip(dumpClimbersPosition,.1,.8);
+        dumpClimbersPosition = Range.clip(dumpClimbersPosition, 0, 1);
         servoClimberDumper.setPosition(dumpClimbersPosition);
 
     }
@@ -413,7 +330,7 @@ public class TankDrive extends OpMode {
     private void retractDumper() throws InterruptedException {
 
         dumpClimbersPosition -= .005;
-        dumpClimbersPosition = Range.clip(dumpClimbersPosition,0,.8);
+        dumpClimbersPosition = Range.clip(dumpClimbersPosition, 0, 1);
         servoClimberDumper.setPosition(dumpClimbersPosition);
     }
 }

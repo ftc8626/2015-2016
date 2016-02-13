@@ -5,6 +5,8 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.LinearLayout;
 
@@ -65,11 +67,20 @@ public class OptionMenu {
                 }
             }
         });
+/*
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.post(new Runnable() {
+            public void run() {
+                builder.show();
+            }
+        });
+*/
         ((Activity) context).runOnUiThread(new Runnable() {
             public void run() {
                 builder.show();
             }
         });
+
     }
 
     /**
