@@ -228,11 +228,11 @@ public class SensorTeleOp extends OpMode {
 		// assign the starting position of the servos
 		tapeMeasureUpDownPosition = 1;
 
-		//dumpClimbersPosition = 0.2;
+		//dumpClimberArmPosition = 0.2;
 
 		// write position values to the wrist and claw servo
 		servoTapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
-		//dumpClimbers.setPosition(dumpClimbersPosition);
+		//dumpClimbers.setPosition(dumpClimberArmPosition);
 
 */
 
@@ -345,7 +345,7 @@ public class SensorTeleOp extends OpMode {
 
 		// write position values to the wrist and claw servo
 		//servoTapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
-		//dumpClimbers.setPosition(dumpClimbersPosition);
+		//dumpClimbers.setPosition(dumpClimberArmPosition);
 
 		//try
 		//{

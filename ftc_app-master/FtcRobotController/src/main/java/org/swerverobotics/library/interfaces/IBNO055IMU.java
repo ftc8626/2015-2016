@@ -260,9 +260,13 @@ public interface IBNO055IMU
     byte getSystemError();
     
     boolean isSystemCalibrated();
+        int getSystemCalibrationStatus();
     boolean isGyroCalibrated();
+        int getGyroCalibrationStatus();
     boolean isAccelerometerCalibrated();
+        int getAccelerometerCalibrationStatus();
     boolean isMagnetometerCalibrated();
+        int getMagnetometerCalibrationStatus();
 
     /** The size of the calibration data, starting at ACCEL_OFFSET_X_LSB, is 22 bytes. */
     int cbCalibrationData = 22;

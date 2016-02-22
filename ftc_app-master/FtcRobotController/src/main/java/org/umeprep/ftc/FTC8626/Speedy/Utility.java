@@ -10,8 +10,8 @@ public class Utility {
  * the robot more precisely at slower speeds.
  */
     public static double scaleInput(double dVal)  {
-        double[] scaleArray = { 0.0, 0.05, 0.09, 0.10, 0.12, 0.15, 0.18, 0.24,
-                0.30, 0.36, 0.43, 0.50, 0.60, 0.72, 0.85, 1.00, 1.00 };
+        double[] scaleArray = { 0.0, 0.04, 0.07, 0.10, 0.13, 0.16, 0.20, 0.24,
+                0.28, 0.32, 0.36, 0.42, 0.48, 0.56, 0.66, .80, 1.00 };
 
         // get the corresponding index for the scaleInput array.
         int index = (int) (dVal * 16.0);

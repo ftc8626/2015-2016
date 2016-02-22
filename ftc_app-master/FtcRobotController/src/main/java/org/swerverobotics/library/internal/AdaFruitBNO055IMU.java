@@ -265,32 +265,78 @@ public final class AdaFruitBNO055IMU implements IBNO055IMU, II2cDeviceClientUser
     // Calibration
     //------------------------------------------------------------------------------------------
 
-    public synchronized boolean isSystemCalibrated()
-        {
+    public synchronized boolean isSystemCalibrated() {
+        //byte b = this.read8(REGISTER.CALIB_STAT);
+        //return ((b>>6) & 0x03) == 0x03;
+
+        return (getSystemCalibrationStatus() == 3);
+    }
+
+    public synchronized int getSystemCalibrationStatus() {
+        //byte b = this.read8(REGISTER.CALIB_STAT);
+        //return (b>>6);
+
         byte b = this.read8(REGISTER.CALIB_STAT);
-        return ((b>>6) & 0x03) == 0x03;
-        }
+        int rightShiftedValue = (b>>>6);
+        return (rightShiftedValue);
+    }
 
     public synchronized boolean isGyroCalibrated()
-        {
+    {
+        //byte b = this.read8(REGISTER.CALIB_STAT);
+        //return ((b>>4) & 0x03) == 0x03;
+
+        return (getGyroCalibrationStatus() == 3);
+    }
+
+    public synchronized int getGyroCalibrationStatus() {
+        //byte b = this.read8(REGISTER.CALIB_STAT);
+        //return (b>>4);
+
         byte b = this.read8(REGISTER.CALIB_STAT);
-        return ((b>>4) & 0x03) == 0x03;
-        }
+        int leftShiftedValue = (b<<2);
+        int rightShiftedValue = (leftShiftedValue>>>6);
+        return (rightShiftedValue);
+    }
 
     public synchronized boolean isAccelerometerCalibrated()
-        {
-        byte b = this.read8(REGISTER.CALIB_STAT);
-        return ((b>>2) & 0x03) == 0x03;
-        }
+    {
+//        byte b = this.read8(REGISTER.CALIB_STAT);
+//        return ((b>>2) & 0x03) == 0x03;
 
-    public synchronized boolean isMagnetometerCalibrated()
-        {
+        return (getAccelerometerCalibrationStatus() == 3);
+    }
+
+    public synchronized int getAccelerometerCalibrationStatus() {
+        //byte b = this.read8(REGISTER.CALIB_STAT);
+        //return (b>>>2);
+
         byte b = this.read8(REGISTER.CALIB_STAT);
-        return ((b/*>>0*/) & 0x03) == 0x03;
-        }
+        int leftShiftedValue = (b<<4);
+        int rightShiftedValue = (leftShiftedValue>>>6);
+        return rightShiftedValue;
+    }
+
+    public synchronized boolean isMagnetometerCalibrated() {
+        //byte b = this.read8(REGISTER.CALIB_STAT);
+        //return ((b/*>>0*/) & 0x03) == 0x03;
+
+        return (getMagnetometerCalibrationStatus() == 3);
+    }
+
+    public synchronized int getMagnetometerCalibrationStatus() {
+        //byte b = this.read8(REGISTER.CALIB_STAT);
+        //return (b);
+
+        byte b = this.read8(REGISTER.CALIB_STAT);
+        int leftShiftedValue = (b<<6);
+        int rightShiftedValue = (leftShiftedValue>>>6);
+        return rightShiftedValue;
+    }
+
 
     public byte[] readCalibrationData()
-        {
+    {
         // From Section 3.11.4 of the datasheet:
         //
         // "The calibration profile includes sensor offsets and sensor radius. Host system can

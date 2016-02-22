@@ -54,34 +54,49 @@ import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveMoveDirection;
 //@TeleOp(name="TankDrive", group="FTC8626")
 public class TankDrive extends OpMode {
 
+    // Wheel motors
     DcMotor wheelMotor1;
     DcMotor wheelMotor2;
-    DriveMoveDirection robotDirection;
+
+    // Hook motor
     DcMotor motorHook;
 
+    // Servos
+    private Servo servoTapeMeasureUpDown;
+    private Servo servoClimberDumperArm;
+    private Servo servoClimberDumperLid;
     private Servo servoDebrisPusherRight;
     private Servo servoDebrisPusherLeft;
 
+    DriveMoveDirection robotDirection;
     public final double DRIVE_MOTOR_POWER_FACTOR = .7;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
-    double hookMotorPowerFactor = 1;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
 
-    ////anything with four slashes is part of the servo mechanics
-    private Servo servoTapeMeasureUpDown;
-    private Servo servoClimberDumper;
-    private boolean dumperClicked = false;
+    double HOOK_MOTOR_POWER_FACTOR = 1;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
+
+    // Debris pusher constants
+    private final double RIGHT_DEBRIS_PUSHER_UP = .15;
+    private final double LEFT_DEBRIS_PUSHER_UP = .9;
+
+    private final double RIGHT_DEBRIS_PUSHER_DOWN = .85;
+    private final double LEFT_DEBRIS_PUSHER_DOWN = .2;
 
     // position of the arm servo.
     double HOOK_MIN_POSITION = 0;
-    double HOOK_MAX_POSITION = 1;
+    double HOOK_MAX_POSITION = .6;
+    double HOOK_AX_POSITION = .37;   // Intended for initial mountain ascent
 
-    // Intended for initial mountain ascent
-    double HOOK_AX_POSITION = .37;
+    private final double HOOK_OUT_SPEED = 1;
+    private final double HOOK_IN_SPEED = -.8;
 
-    double tapeMeasureUpDownPosition = HOOK_MIN_POSITION;
-    // amount to change the tape measure up down servo position by
-    double tapeMeasureUpDownDelta = 0.0008;
+    double tapeMeasureUpDownPosition = HOOK_MAX_POSITION;
+    double tapeMeasureUpDownDelta = 0.001;   // amount to change the tape measure up down servo position
 
-    double dumpClimbersPosition;
+    private final double CLIMBER_DUMPER_ARM_MIN_POSITION = .047;
+    private final double CLIMBER_DUMPER_ARM_MAX_POSITION = .95;
+    private final double CLIMBER_DUMPER_EXTEND_SLOW_CHANGE = 0.005;  // amount to change the climber dumper up down
+    private final double CLIMBER_DUMPER_RETRACT_SLOW_CHANGE = 0.003;  // amount to change the climber dumper up down
+    private final double CLIMBER_DUMPER_LID_CLOSED_POSITION = 0.15;
+    private final double CLIMBER_DUMPER_LID_OPEN_POSITION = 0.75;
 
     /*
      * Code to run when the op mode is first enabled goes here
@@ -91,75 +106,53 @@ public class TankDrive extends OpMode {
     @Override
     public void init()  {
 
-        wheelMotor1 = hardwareMap.dcMotor.get("Wheel 1");
-        wheelMotor2 = hardwareMap.dcMotor.get("Wheel 2");
-
-        wheelMotor1.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
-        wheelMotor2.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
-
-        wheelMotor1.setDirection(DcMotor.Direction.FORWARD);
-        wheelMotor2.setDirection(DcMotor.Direction.REVERSE);
-        robotDirection = DriveMoveDirection.Forward;
-
-        motorHook = hardwareMap.dcMotor.get("Hook");
-        motorHook.setDirection(DcMotor.Direction.REVERSE);
-
-        // Servo code
-        servoTapeMeasureUpDown = hardwareMap.servo.get("Hook Control");
-        servoClimberDumper = hardwareMap.servo.get("Climber Dumper");
-        //servoButtonPusher = hardwareMap.servo.get("Button Pusher");
-
-        servoDebrisPusherRight = hardwareMap.servo.get("Debris Pusher Right");
-        servoDebrisPusherLeft = hardwareMap.servo.get("Debris Pusher Left");
-       // servoDebrisPusherMiddle = hardwareMap.servo.get("Debris Pusher Middle");
-
         try {
+
+            // Get wheel motors
+            wheelMotor1 = hardwareMap.dcMotor.get("Wheel 1");
+            wheelMotor2 = hardwareMap.dcMotor.get("Wheel 2");
+
+            // Initialize wheel motors
+            wheelMotor1.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
+            wheelMotor2.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
+            wheelMotor1.setDirection(DcMotor.Direction.FORWARD);
+            wheelMotor2.setDirection(DcMotor.Direction.REVERSE);
+            robotDirection = DriveMoveDirection.Forward;
+
+            // Get hook motor
+            motorHook = hardwareMap.dcMotor.get("Hook");
+            motorHook.setDirection(DcMotor.Direction.REVERSE);
+
+            // Get servos
+            servoTapeMeasureUpDown = hardwareMap.servo.get("Hook Control");
+            servoClimberDumperArm = hardwareMap.servo.get("Climber Dumper Arm");
+            servoClimberDumperLid = hardwareMap.servo.get("Climber Dumper Lid");
+            servoDebrisPusherRight = hardwareMap.servo.get("Debris Pusher Right");
+            servoDebrisPusherLeft = hardwareMap.servo.get("Debris Pusher Left");
+
             setServoPositions();
         }
-        catch (InterruptedException ex)
-        {}
-        //dumpClimbers = hardwareMap.servo.get("servo_6");
-
-        // assign the starting position of the servos
-
-        dumpClimbersPosition = .1;
-
-
-        // write position values to the wrist and claw servo
-        //dumpClimbers.setPosition(dumpClimbersPosition);
+        catch (Exception ex)
+        {
+            telemetry.addData("error", ex.getMessage());
+        }
     }
 
-    private void setServoPositions() throws InterruptedException {
+    private void setServoPositions() {
 
-        servoTapeMeasureUpDown.setPosition(HOOK_MIN_POSITION);
-
+        // assign the starting position of the servos
+        servoTapeMeasureUpDown.setPosition(HOOK_MAX_POSITION);
+        servoClimberDumperArm.setPosition(CLIMBER_DUMPER_ARM_MIN_POSITION);
+        servoClimberDumperLid.setPosition(CLIMBER_DUMPER_LID_CLOSED_POSITION);
         initializeDebrisPusher();
     }
 
-    /*
-     * This method will be called repeatedly in a loop
-     *
-     * @see com.qualcomm.robotcore.eventloop.opmode.OpMode#run()
-     */
     @Override
     public void loop() {
 
         //*********
         // Drive with joysticks
         //*********
-        // Currently testing using both game controllers
-        double leftStick = gamepad1.left_stick_y; //* DRIVE_MOTOR_POWER_FACTOR;
-        double rightStick = gamepad1.right_stick_y; //* DRIVE_MOTOR_POWER_FACTOR;
-
-        //clip the right/left values so that the values never exceed +/- 1
-        rightStick = Range.clip(rightStick, -1, 1);
-        leftStick = Range.clip(leftStick, -1, 1);
-
-        // scale the joystick value to make it easier to control
-        // the robot more precisely at slower speeds.
-        rightStick = Utility.scaleInput(rightStick);
-        leftStick =  Utility.scaleInput(leftStick);
-
         if (gamepad1.dpad_left && gamepad1.a) {
             robotDirection = DriveMoveDirection.Backward;
             wheelMotor1.setDirection(DcMotor.Direction.REVERSE);
@@ -170,6 +163,20 @@ public class TankDrive extends OpMode {
             wheelMotor1.setDirection(DcMotor.Direction.FORWARD);
             wheelMotor2.setDirection(DcMotor.Direction.REVERSE);
         }
+
+
+        // Read power to motors from game controllers
+        double leftStick = gamepad1.left_stick_y * DRIVE_MOTOR_POWER_FACTOR;
+        double rightStick = gamepad1.right_stick_y * DRIVE_MOTOR_POWER_FACTOR;
+
+        //clip the right/left values so that the values never exceed +/- 1
+        rightStick = Range.clip(rightStick, -1, 1);
+        leftStick = Range.clip(leftStick, -1, 1);
+
+        // scale the joystick value to make it easier to control
+        // the robot more precisely at slower speeds.
+        rightStick = Utility.scaleInput(rightStick);
+        leftStick =  Utility.scaleInput(leftStick);
 
         // set power to the motors based on which end of the robot is expected to be forward
         if (robotDirection == DriveMoveDirection.Forward) {
@@ -184,35 +191,28 @@ public class TankDrive extends OpMode {
         telemetry.addData("left tgt pwr", "left  pwr: " + String.format("%.2f", leftStick));
         telemetry.addData("right tgt pwr", "right pwr: " + String.format("%.2f", rightStick));
 
-        //
-        //
-        //
 
         //*********
         // Extend or retract the hook
         //********
-        double hookOutSpeed = 1;
-        double hookInSpeed = -.8;
+
+        double hookOutSpeed = HOOK_OUT_SPEED * HOOK_MOTOR_POWER_FACTOR;
+        double hookInSpeed = HOOK_IN_SPEED * HOOK_MOTOR_POWER_FACTOR;
 
         //clip the hook speed values so that the values never exceed +/- 1
-     //   hookOutSpeed = Range.clip(hookOutSpeed, -1, 1);
-     //   hookInSpeed = Range.clip(hookInSpeed, -1, 1);
+        hookOutSpeed = Range.clip(hookOutSpeed, -1, 1);
+        hookInSpeed = Range.clip(hookInSpeed, -1, 1);
 
         //set the hook motor power
         if (gamepad1.dpad_up) {
-            motorHook.setPower(hookOutSpeed * hookMotorPowerFactor);
-            try {
-                setDebrisPusher(DebrisPusherDirection.Up);
-            } catch (InterruptedException ex) {}
+            motorHook.setPower(hookOutSpeed);
+            setDebrisPusher(DebrisPusherDirection.Up);
         }
         else if (gamepad1.dpad_down) {
-            motorHook.setPower(hookInSpeed * hookMotorPowerFactor);
-            try {
-                setDebrisPusher(DebrisPusherDirection.Up);
-            } catch (InterruptedException ex) {}
+            motorHook.setPower(hookInSpeed);
+            setDebrisPusher(DebrisPusherDirection.Up);
 
-
-            // Set the wheels to "float" so they spin freely when going up the mountain (ramp)
+            // Set the wheels to "float" so they spin freely when being pulled up the mountain (ramp)
             wheelMotor2.setPowerFloat();
             wheelMotor1.setPower(-.08);
         }
@@ -220,71 +220,54 @@ public class TankDrive extends OpMode {
             motorHook.setPower(0);
         }
 
-        //
-        //
-        //
 
-        // ********
-        // Change the height of the hook and tape measure
-        // ********
-        if (gamepad1.y) {
-            tapeMeasureUpDownPosition += tapeMeasureUpDownDelta;
-        }
-        else if (gamepad1.b) {
-            tapeMeasureUpDownPosition -= tapeMeasureUpDownDelta;
-        }
-
-        if (gamepad1.x){
-            tapeMeasureUpDownPosition = HOOK_MIN_POSITION;
-        }
-
-        if (gamepad1.x && gamepad1.a){
-            tapeMeasureUpDownPosition = HOOK_AX_POSITION;
-        }
-
-        //clip the hook speed values so that the values never go below 0 or above .6
-        tapeMeasureUpDownPosition = Range.clip(tapeMeasureUpDownPosition, HOOK_MIN_POSITION, HOOK_MAX_POSITION);
-        servoTapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
 
         // ********
         // Change the position of the debris pusher
         // ********
-        try {
-            if (gamepad1.left_trigger > 0 && gamepad1.a) {
-                setDebrisPusher(DebrisPusherDirection.Up);
-            }
-            else if (gamepad1.right_trigger > 0 && gamepad1.a) {
-                setDebrisPusher(DebrisPusherDirection.Down);
-            }
+        if (gamepad1.left_trigger > 0 && gamepad1.a) {
+            setDebrisPusher(DebrisPusherDirection.Up);
         }
-        catch (InterruptedException ex)
-        {
-            telemetry.addData("Error",ex.getMessage());
+        else if (gamepad1.right_trigger > 0 && gamepad1.a) {
+            setDebrisPusher(DebrisPusherDirection.Down);
         }
 
         // ********
         // Dump the climbers
         // ********
-        if (gamepad1.back)
-        {
-            try {
-                dumpClimbers();
-            }
-            catch (InterruptedException ex)
-            {
-                telemetry.addData("Error",ex.getMessage());
-            }
+        if (gamepad1.back && gamepad1.b) {
+            openClimberDumperLid();
+        } else if (gamepad1.back && gamepad1.a) {
+            closeClimberDumperLid();
         }
-        else if (gamepad1.start)
-        {
-            try {
-                retractDumper();
-            }
-            catch (InterruptedException ex)
-            {
-                telemetry.addData("Error",ex.getMessage());
-            }
+
+        if (gamepad1.back && gamepad1.y) {
+            extendClimberDumperArm();
         }
+        else if (gamepad1.start && gamepad1.y) {
+            retractDumper();
+        }
+        // ********
+        // Change the height of the hook and tape measure
+        // ********
+        else if (gamepad1.y) {
+            tapeMeasureUpDownPosition += tapeMeasureUpDownDelta;
+        }
+        else if (gamepad1.b) {
+            tapeMeasureUpDownPosition -= tapeMeasureUpDownDelta;
+        }
+        else if (gamepad1.x && gamepad1.a){
+            tapeMeasureUpDownPosition = HOOK_AX_POSITION;
+        }
+        else if (gamepad1.x){
+            tapeMeasureUpDownPosition = HOOK_MIN_POSITION;
+        }
+
+        //
+        //clip the hook speed values so that the values never go below the limits of the hardware
+        //
+        tapeMeasureUpDownPosition = Range.clip(tapeMeasureUpDownPosition, HOOK_MIN_POSITION, HOOK_MAX_POSITION);
+        servoTapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
     }
 
     /*
@@ -294,43 +277,49 @@ public class TankDrive extends OpMode {
      */
     @Override
     public void stop() {
-        try {
-            setDebrisPusher(DebrisPusherDirection.Down);
-        } catch (InterruptedException ex) {}
+        setDebrisPusher(DebrisPusherDirection.Down);
     }
 
-    private void initializeDebrisPusher() throws InterruptedException {
+    private void initializeDebrisPusher() { //} throws InterruptedException {
 
-        // Move the pusher down
-        servoDebrisPusherRight.setPosition(.85);
-        servoDebrisPusherLeft.setPosition(.2);
+        //initializeDebrisPusher to the down position
+        servoDebrisPusherRight.setPosition(RIGHT_DEBRIS_PUSHER_DOWN);
+        servoDebrisPusherLeft.setPosition(LEFT_DEBRIS_PUSHER_DOWN);
     }
 
-    private void setDebrisPusher(DebrisPusherDirection direction) throws InterruptedException {
+    private void setDebrisPusher(DebrisPusherDirection direction) {
 
         if (direction == DebrisPusherDirection.Up) {
-            // Move the pusher up
-            servoDebrisPusherRight.setPosition(.2);
-            servoDebrisPusherLeft.setPosition(.85);
+            // Move the pusher up or down
+            servoDebrisPusherRight.setPosition(RIGHT_DEBRIS_PUSHER_UP);
+            servoDebrisPusherLeft.setPosition(LEFT_DEBRIS_PUSHER_UP);
         } else {
             // Move the pusher up or down
-            servoDebrisPusherRight.setPosition(.85);
-            servoDebrisPusherLeft.setPosition(.2);
+            servoDebrisPusherRight.setPosition(RIGHT_DEBRIS_PUSHER_DOWN);
+            servoDebrisPusherLeft.setPosition(LEFT_DEBRIS_PUSHER_DOWN);
         }
     }
 
-    private void dumpClimbers() throws InterruptedException {
-
-        dumpClimbersPosition += .005;
-        dumpClimbersPosition = Range.clip(dumpClimbersPosition, 0, 1);
-        servoClimberDumper.setPosition(dumpClimbersPosition);
-
+    private void extendClimberDumperArm() {
+        double armPosition = servoClimberDumperArm.getPosition();
+        armPosition += CLIMBER_DUMPER_EXTEND_SLOW_CHANGE;
+        armPosition = Range.clip(armPosition, CLIMBER_DUMPER_ARM_MIN_POSITION, CLIMBER_DUMPER_ARM_MAX_POSITION);
+        servoClimberDumperArm.setPosition(armPosition);
     }
 
-    private void retractDumper() throws InterruptedException {
+    private void retractDumper() {
 
-        dumpClimbersPosition -= .005;
-        dumpClimbersPosition = Range.clip(dumpClimbersPosition, 0, 1);
-        servoClimberDumper.setPosition(dumpClimbersPosition);
+        double armPosition = servoClimberDumperArm.getPosition();
+        armPosition -= CLIMBER_DUMPER_RETRACT_SLOW_CHANGE;
+        armPosition = Range.clip(armPosition, CLIMBER_DUMPER_ARM_MIN_POSITION, CLIMBER_DUMPER_ARM_MAX_POSITION);
+        servoClimberDumperArm.setPosition(armPosition);
+    }
+
+    private void openClimberDumperLid() {
+        servoClimberDumperLid.setPosition(CLIMBER_DUMPER_LID_OPEN_POSITION);
+    }
+
+    private void closeClimberDumperLid() {
+        servoClimberDumperLid.setPosition(CLIMBER_DUMPER_LID_CLOSED_POSITION);
     }
 }
