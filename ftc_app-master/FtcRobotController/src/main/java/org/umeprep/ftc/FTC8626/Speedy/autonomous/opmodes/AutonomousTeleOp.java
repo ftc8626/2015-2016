@@ -31,16 +31,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 package org.umeprep.ftc.FTC8626.Speedy.autonomous.opmodes;
 
-import android.util.Log;
-
 import org.swerverobotics.library.ClassFactory;
 //import org.swerverobotics.library.SynchronousOpMode;
-import org.swerverobotics.library.interfaces.EulerAngles;
 import org.swerverobotics.library.interfaces.IBNO055IMU;
 import org.swerverobotics.library.interfaces.Position;
 //import org.swerverobotics.library.interfaces.TeleOp;
 import org.swerverobotics.library.interfaces.Velocity;
-import org.swerverobotics.library.internal.ThreadSafeAnalogInput;
 import org.umeprep.ftc.FTC8626.Speedy.DebrisPusherDirection;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.Category;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveMoveDirection;
@@ -48,7 +44,6 @@ import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveTurnDirection;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.MenuChoices;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.OptionMenu;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.SingleSelectCategory;
-//import org.umeprep.ftc.FTC8626.Speedy.AdafruitIMU;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotorController;
@@ -60,11 +55,8 @@ import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
-import java.sql.Time;
-import java.util.Calendar;
 
-/*
- * Linear Tele Op Mode for Autonomous movement
+/** Linear Tele Op Mode for Autonomous movement
  * <p/>
  /
 //@TeleOp(name="AutonomousTeleOp", group="FTC8626")
@@ -93,9 +85,10 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     private final String ALLIANCE = "ALLIANCE";
     private final String ALLIANCE_RED = "RED";
     private final String ALLIANCE_BLUE = "BLUE";
-    private final String STARTING_POSITION = "STARTING_POSITION";
+    private final String STARTING_POSITION = "STARTING POSITION";
     private final String STARTING_POSITION_LEFT = "LEFT";
     private final String STARTING_POSITION_RIGHT = "RIGHT";
+    private final String START_DELAY = "START DELAY";
 
     private final double HOOK_STRAIGHT_UP_POSITION = .59;
     private final double CLIMBER_DUMPER_ARM_MIN_POSITION = .0;
@@ -103,10 +96,10 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     private final double CLIMBER_DUMPER_LID_CLOSED_POSITION = 0.15;
     private final double CLIMBER_DUMPER_LID_OPEN_POSITION = 0.75;
 
-    private final double RIGHT_DEBRIS_PUSHER_UP = .15;
-    private final double LEFT_DEBRIS_PUSHER_UP = .9;
-    private final double RIGHT_DEBRIS_PUSHER_DOWN = .85;
-    private final double LEFT_DEBRIS_PUSHER_DOWN = .2;
+    private final double DEBRIS_PUSHER_UP = .85;
+    //private final double LEFT_DEBRIS_PUSHER_UP = .9;
+    private final double DEBRIS_PUSHER_DOWN = .15;
+  //  private final double LEFT_DEBRIS_PUSHER_DOWN = .2;
 
     // Motor variables
     private DcMotor motorRight;
@@ -117,8 +110,8 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     private Servo servoTapeMeasureUpDown;
     private Servo servoClimberDumperArm;
     private Servo servoClimberDumperLid;
-    private Servo servoDebrisPusherRight;
-    private Servo servoDebrisPusherLeft;
+    private Servo servoDebrisPusher;
+    //private Servo servoDebrisPusherLeft;
 
     // Menu variables
     private OptionMenu menu;
@@ -170,27 +163,41 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         // This menu code was shared with us by team 4290 lasarobotics (thanks!)
         OptionMenu.Builder builder = new OptionMenu.Builder(hardwareMap.appContext);
 
-        //Setup a SingleSelectCategory
+        //Setup a Alliance Category
         SingleSelectCategory alliance = new SingleSelectCategory(ALLIANCE);
         alliance.addOption(ALLIANCE_RED);
         alliance.addOption(ALLIANCE_BLUE);
         builder.addCategory(alliance);
 
-        //Setup a SingleSelectCategory
+        //Setup a starting position Category
         SingleSelectCategory startPosition = new SingleSelectCategory(STARTING_POSITION);
         startPosition.addOption(STARTING_POSITION_LEFT);
         startPosition.addOption(STARTING_POSITION_RIGHT);
         builder.addCategory(startPosition);
 
-      /*  //Setup a TextCategory
+        //setup a start delay category
+            SingleSelectCategory startDelay = new SingleSelectCategory(START_DELAY);
+        startDelay.addOption("0");
+        startDelay.addOption("1");
+        startDelay.addOption("2");
+        startDelay.addOption("3");
+        startDelay.addOption("4");
+        startDelay.addOption("5");
+        startDelay.addOption("6");
+        startDelay.addOption("7");
+        startDelay.addOption("8");
+        startDelay.addOption("9");
+        builder.addCategory(startDelay);
+
+        /*//Setup a TextCategory
         TextCategory robotName = new TextCategory("Speedy");
         builder.addCategory(robotName);
 
         //Setup a NumberCategory
         NumberCategory time = new NumberCategory("Time");
         builder.addCategory(time);
-
         */
+
 
         //Create menu
         menu = builder.create();
@@ -266,10 +273,10 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     private void InitializeServos() throws InterruptedException {
 
         //initializeDebrisPusher to the down position
-        servoDebrisPusherRight = hardwareMap.servo.get("Debris Pusher Right");
-        servoDebrisPusherLeft = hardwareMap.servo.get("Debris Pusher Left");
-        servoDebrisPusherRight.setPosition(RIGHT_DEBRIS_PUSHER_DOWN);
-        servoDebrisPusherLeft.setPosition(LEFT_DEBRIS_PUSHER_DOWN);
+        servoDebrisPusher = hardwareMap.servo.get("Debris Pusher");
+       // servoDebrisPusherLeft = hardwareMap.servo.get("Debris Pusher Left");
+        servoDebrisPusher.setPosition(DEBRIS_PUSHER_DOWN);
+       // servoDebrisPusherLeft.setPosition(LEFT_DEBRIS_PUSHER_DOWN);
 
         servoTapeMeasureUpDown = hardwareMap.servo.get("Hook Control");
         servoTapeMeasureUpDown.setPosition(HOOK_STRAIGHT_UP_POSITION);
@@ -284,8 +291,8 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     private void makeSomeMoves() throws Exception, InterruptedException {
 
         MenuChoices menuChoices = getMenuChoices();
-
-
+// this is to atempt a wit function for our allience
+        Thread.sleep(menuChoices.getStartDelay()*1000);
         moveTowardBeacon(menuChoices);
 
         dumpClimbers();
@@ -295,10 +302,10 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 //      stopDriveMotors();
     }
 
-    private void moveTowardFloorGoal(MenuChoices menuChoices) throws InterruptedException {
-
+/*    private void moveTowardFloorGoal(MenuChoices menuChoices) throws InterruptedException {
+// Only enable if fixed Beacon/ClimberDumper as this sets up the floor goal.
         if (menuChoices.getAlliance() == ALLIANCE_RED) {
-            turn(DriveTurnDirection.Left, 78d);
+            turn(DriveTurnDirection.Left,78d);
             move(DriveMoveDirection.Forward, .3, 10);
         }
         else {
@@ -306,18 +313,18 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
             move(DriveMoveDirection.Forward, .3, 10);
         }
     }
-
+*/
     private void setDebrisPusher(DebrisPusherDirection direction) throws InterruptedException {
 
         if (direction == DebrisPusherDirection.Up) {
             // Move the pusher up or down
-            servoDebrisPusherRight.setPosition(RIGHT_DEBRIS_PUSHER_UP);
-            servoDebrisPusherLeft.setPosition(LEFT_DEBRIS_PUSHER_UP);
+            servoDebrisPusher.setPosition(DEBRIS_PUSHER_UP);
+            //servoDebrisPusherLeft.setPosition(LEFT_DEBRIS_PUSHER_UP);
         } else {
 
             // Move the pusher up or down
-            servoDebrisPusherRight.setPosition(RIGHT_DEBRIS_PUSHER_DOWN);
-            servoDebrisPusherLeft.setPosition(LEFT_DEBRIS_PUSHER_DOWN);
+            servoDebrisPusher.setPosition(DEBRIS_PUSHER_DOWN);
+           // servoDebrisPusherLeft.setPosition(LEFT_DEBRIS_PUSHER_DOWN);
         }
     }
 
@@ -361,9 +368,11 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
             String categoryName = c.getName();
             if (categoryName == ALLIANCE)
                 menuChoices.setAlliance(menu.selectedOption(categoryName));
-            else if (categoryName == STARTING_POSITION) {
+            else if (categoryName == STARTING_POSITION)
                 menuChoices.setStartingPosition(menu.selectedOption(categoryName));
-            }
+            else if (categoryName == START_DELAY)
+                menuChoices.setStartDelay(menu.selectedOption(categoryName));
+
         }
 
         return menuChoices;
@@ -396,16 +405,16 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
             // Right
             if (menuChoices.getStartingPosition() == STARTING_POSITION_RIGHT){
                 firstMoveDistance = 18;
-                firstTurnDegrees = 44;
-                secondMoveDistance = 66;
-                secondTurnDegrees = 45;
+                firstTurnDegrees = 43;
+                secondMoveDistance = 67;
+                secondTurnDegrees = 42;
                 thirdMoveDistance = 22; //18);
             }
             else { // Left
                 firstMoveDistance = 30;
                 firstTurnDegrees = 44;
-                secondMoveDistance = 50;
-                secondTurnDegrees = 46;
+                secondMoveDistance = 48;
+                secondTurnDegrees = 43;
                 thirdMoveDistance = 14; //16);
             }
         }
@@ -431,11 +440,11 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         }
 
         move(DriveMoveDirection.Forward, firstMoveDistance);
-
+/*
         FlickDebris(3);
 
         telemetry.addData("elapsed: ", elapsedTime.time() - realZero);
-
+*/
         turn(direction, firstTurnDegrees);
         move(DriveMoveDirection.Forward, secondMoveDistance);
 

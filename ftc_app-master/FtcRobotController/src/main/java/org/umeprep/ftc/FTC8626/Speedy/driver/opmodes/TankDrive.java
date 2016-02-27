@@ -67,6 +67,8 @@ public class TankDrive extends OpMode {
     private Servo servoClimberDumperLid;
     private Servo servoDebrisPusherRight;
     private Servo servoDebrisPusherLeft;
+    private Servo servoZipLineLeft;
+    private Servo servoZipLineRight;
 
     DriveMoveDirection robotDirection;
     public final double DRIVE_MOTOR_POWER_FACTOR = .7;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
@@ -97,6 +99,19 @@ public class TankDrive extends OpMode {
     private final double CLIMBER_DUMPER_RETRACT_SLOW_CHANGE = 0.003;  // amount to change the climber dumper up down
     private final double CLIMBER_DUMPER_LID_CLOSED_POSITION = 0.15;
     private final double CLIMBER_DUMPER_LID_OPEN_POSITION = 0.75;
+
+    //    Below is the Climber ZipLine Release initial positions
+    private double INIT_ZIP_LINE_LEFT_POSITION = 0.15;
+    private double INIT_ZIP_LINE_RIGHT_POSITION = 0.85;
+
+    double zipLineLeftUpDownPosition = INIT_ZIP_LINE_LEFT_POSITION;
+    double zipLineRightUpDownPosition = INIT_ZIP_LINE_RIGHT_POSITION;
+
+//    Below is the Climber ZipLine Release positions
+    private final double ZIP_LINE_LEFT_DOWN_POSITION = 0.45;
+    private final double ZIP_LINE_LEFT_UP_POSITION = 0.15;
+    private final double ZIP_LINE_RIGHT_DOWN_POSITION = 85;
+    private final double ZIP_LINE_RIGHT_UP_POSITION = 55;
 
     /*
      * Code to run when the op mode is first enabled goes here
@@ -129,6 +144,8 @@ public class TankDrive extends OpMode {
             servoClimberDumperLid = hardwareMap.servo.get("Climber Dumper Lid");
             servoDebrisPusherRight = hardwareMap.servo.get("Debris Pusher Right");
             servoDebrisPusherLeft = hardwareMap.servo.get("Debris Pusher Left");
+//            servoZipLineLeft = hardwareMap.servo.get("Zip Line Left");
+//            servoZipLineRight = hardwareMap.servo.get("Zip Line Right");
 
             setServoPositions();
         }
@@ -144,6 +161,8 @@ public class TankDrive extends OpMode {
         servoTapeMeasureUpDown.setPosition(HOOK_MAX_POSITION);
         servoClimberDumperArm.setPosition(CLIMBER_DUMPER_ARM_MIN_POSITION);
         servoClimberDumperLid.setPosition(CLIMBER_DUMPER_LID_CLOSED_POSITION);
+//        servoZipLineLeft.setPosition(ZIP_LINE_LEFT_POSITION);
+//        servoZipLineRight.setPosition(ZIP_LINE_RIGHT_POSITION);
         initializeDebrisPusher();
     }
 
@@ -268,6 +287,10 @@ public class TankDrive extends OpMode {
         //
         tapeMeasureUpDownPosition = Range.clip(tapeMeasureUpDownPosition, HOOK_MIN_POSITION, HOOK_MAX_POSITION);
         servoTapeMeasureUpDown.setPosition(tapeMeasureUpDownPosition);
+
+        //*********
+        //Control Zip Line Servos
+        //*********
     }
 
     /*
