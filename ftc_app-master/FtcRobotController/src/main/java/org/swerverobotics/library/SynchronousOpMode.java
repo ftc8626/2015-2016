@@ -501,45 +501,49 @@ public abstract class SynchronousOpMode extends OpMode implements IThunkDispatch
 
         //-----------------------------------------------------------------------
         // Construction
-//
-//        ActionQueueAndHistory()
-//            {
-//            //this.queue   = this.newQueue();
-//            this.history = this.newHistory();
-////            if (BuildConfig.DEBUG && false)
-////                this.historicalActions = new LinkedList<Runnable>();
-////            }
-////        private Queue<Runnable> newQueue()
-////            {
-////            return new LinkedList<Runnable>();
-////            }
-//        private ActionKeyHistory newHistory()
-//            {
-//            return new ActionKeyHistory();
-//            }
+
+        ActionQueueAndHistory()
+            {
+            this.queue   = this.newQueue();
+            this.history = this.newHistory();
+            /*
+            if (BuildConfig.DEBUG && false)
+                this.historicalActions = new LinkedList<Runnable>();
+            */
+            }
+
+        private Queue<Runnable> newQueue()
+            {
+            return new LinkedList<Runnable>();
+            }
+        private ActionKeyHistory newHistory()
+            {
+            return new ActionKeyHistory();
+            }
 
         //-----------------------------------------------------------------------
         // Operations
 
-//        synchronized void clear()
-//            {
-//            //this.queue   = this.newQueue();
-//            this.history = this.newHistory();
-//            this.onChanged();
-//            }
-//
-//        synchronized void clearHistory()
-//            {
-//            this.history = this.newHistory();
-//            this.onChanged();
-//            }
+        synchronized void clear()
+            {
+            this.queue   = this.newQueue();
+            this.history = this.newHistory();
+            this.onChanged();
+            }
 
-//        synchronized void add(Runnable action)
-//            {
-//            assertTrue(!BuildConfig.DEBUG || action!=null);
-//            this.queue.add(action);
-//            this.onChanged();
-//            }
+        synchronized void clearHistory()
+            {
+            this.history = this.newHistory();
+            this.onChanged();
+            }
+
+        synchronized void add(Runnable action)
+            {
+            assertTrue(//!BuildConfig.DEBUG ||
+                 action!=null);
+            this.queue.add(action);
+            this.onChanged();
+            }
 
         synchronized Runnable poll()
             {
@@ -637,15 +641,15 @@ public abstract class SynchronousOpMode extends OpMode implements IThunkDispatch
                 {
                 this.threadBody.run();
                 }
-            catch (InterruptedException ex) {}
-
-            catch (RuntimeInterruptedException ignored)
+            catch (InterruptedException ie)
                 {
                 // If the main() method itself doesn't catch the interrupt, at least
                 // we will do so here. The whole point of such interrupts is to
                 // get the thread to shut down, which we are about to do here by
                 // falling off the end of run().
                 }
+            catch (RuntimeInterruptedException ignored)
+            {}
             catch (RuntimeException e)
                 {
                 // Remember exceptions so we can throw them later back over in loop()
@@ -751,7 +755,7 @@ public abstract class SynchronousOpMode extends OpMode implements IThunkDispatch
 
             // Paranoia: clear any state that may just perhaps be lingering
             this.clearSingletons();
-            //this.actionQueueAndHistory.clear();
+            this.actionQueueAndHistory.clear();
             this.synchronousWorkerThreads.clear();
 
             // We're being asked to start, not stop
@@ -779,7 +783,9 @@ public abstract class SynchronousOpMode extends OpMode implements IThunkDispatch
         catch (Exception e)
             {
             Log.e(LOGGING_TAG, String.format("exception thrown in init(): %s", Util.getStackTrace(e)));
-            //throw e;    // Rethrow so this exception gets displayed on phone displays
+            try {
+                throw e;    // Rethrow so this exception gets displayed on phone displays
+            } catch (Exception anotherException) {}
             }
         }
 
@@ -840,7 +846,8 @@ public abstract class SynchronousOpMode extends OpMode implements IThunkDispatch
             this.preLoopHook();
 
             // Validate our assumption of init() and loop() running on the same thread.
-            //assertTrue(!BuildConfig.DEBUG || this.isLoopThread());
+            assertTrue(//!BuildConfig.DEBUG ||
+                this.isLoopThread());
 
             synchronized (this.loopLock)
                 {
@@ -848,7 +855,7 @@ public abstract class SynchronousOpMode extends OpMode implements IThunkDispatch
                 this.loopCount.getAndIncrement();
 
                 // The history of what was executed int the previous loop() call is now irrelevant
-                //this.actionQueueAndHistory.clearHistory();
+                this.actionQueueAndHistory.clearHistory();
 
                 // If we had an exception thrown by a synchronous thread, then throw it here. 'Sort
                 // of like thunking the exceptions. Exceptions from the main thread take
@@ -916,7 +923,9 @@ public abstract class SynchronousOpMode extends OpMode implements IThunkDispatch
         catch (Exception e)
             {
             Log.e(LOGGING_TAG, String.format("exception thrown in loop(): %s", Util.getStackTrace(e)));
-            //throw e;    // Rethrow so this exception gets displayed on phone displays
+            try {
+                throw e;    // Rethrow so this exception gets displayed on phone displays
+            } catch (Exception anotherException) {}
             }
         }
 
@@ -979,7 +988,9 @@ public abstract class SynchronousOpMode extends OpMode implements IThunkDispatch
         catch (Exception e)
             {
             Log.e(LOGGING_TAG, String.format("exception thrown in stop(): %s", Util.getStackTrace(e)));
-            //throw e;    // Rethrow so this exception gets displayed on phone displays
+            try {
+                throw e;    // Rethrow so this exception gets displayed on phone displays
+            } catch (Exception anotherException) {}
             }
         }
 
@@ -1059,7 +1070,7 @@ public abstract class SynchronousOpMode extends OpMode implements IThunkDispatch
     @Override public void executeOnLoopThread(Runnable action)
         {
         SwerveThreadContext.assertSynchronousThread();
-        //this.actionQueueAndHistory.add(action);
+        this.actionQueueAndHistory.add(action);
         }
 
     /**

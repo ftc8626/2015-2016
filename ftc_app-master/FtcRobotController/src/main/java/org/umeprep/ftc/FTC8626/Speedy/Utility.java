@@ -38,4 +38,16 @@ public class Utility {
         return dScale;
     }
 
+    // Normalize the angle into the range [-180,180) /
+    public static double normalizeDegrees(double degrees)
+    {
+        if (degrees >= 360.0) degrees -= 360.0;
+        if (degrees < 0.0) degrees += 360.0;
+        return degrees;
+    }
+    public static double degreesFromRadians(double radians) {
+        return radians * 180.0 / Math.PI;
+    }
+
+
 }
