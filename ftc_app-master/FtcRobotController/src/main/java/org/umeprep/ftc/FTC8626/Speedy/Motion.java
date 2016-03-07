@@ -2,11 +2,16 @@ package org.umeprep.ftc.FTC8626.Speedy;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorController;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
+
+// for telemetry.addData...
+//import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveMoveDirection;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveTurnDirection;
-import org.umeprep.ftc.FTC8626.Speedy.Navigation;
 /**
  * Created by Andre on 3/3/2016.
  */
@@ -20,7 +25,7 @@ public final class Motion {
 
     // Adjust the MOVE_POWER_FACTOR based on the smoothness of floor surface
     private final double DRIVE_SLOW_POWER = .15;
-    private final double DEFAULT_DRIVE_MOTOR_POWER = .6;
+    private final double DEFAULT_DRIVE_MOTOR_POWER = .8;
     private final double MOVE_POWER_FACTOR = .8;   // Multiplier to reduce the actual power
     private final double SLOW_MOVE_POWER_FACTOR = .2;
     private final double MOVE_POWER_HEADING_ADJUSTMENT = .008;
@@ -31,7 +36,7 @@ public final class Motion {
     private final double TURN_POWER_FACTOR = 1.5;
 
     private Navigation navigation;
-    private double lastDesiredHeading;
+    //private double lastDesiredHeading;
 
     private DcMotor motorRight;
     private DcMotor motorLeft;
@@ -49,16 +54,11 @@ public final class Motion {
 
     public void simpleMoveBackwards() {
         //double movePower = Range.clip(DEFAULT_DRIVE_MOTOR_POWER * SLOW_MOVE_POWER_FACTOR, -1, 1);
-        setMotorPower(.15);
+        setMotorPower(.25);
     }
 
     public void move(DriveMoveDirection robotMoveDirection, double distanceInInches, double lastDesiredHeading) throws InterruptedException {
-        double defaultMotorPower = DEFAULT_DRIVE_MOTOR_POWER;
-        move(robotMoveDirection, defaultMotorPower, distanceInInches, lastDesiredHeading);
-    }
-
-
-    public void move(DriveMoveDirection robotMoveDirection, double movePower, double distanceInInches, double lastDesiredHeading) throws InterruptedException {
+        double movePower = DEFAULT_DRIVE_MOTOR_POWER;
 
         double initialHeading = lastDesiredHeading;
         double currentHeading = initialHeading;
@@ -95,10 +95,11 @@ public final class Motion {
         // Start slow
         double initialMovePower = movePower;
 
-        if (distanceInInches > 12) {
+        if (distanceInInches > 17) {
             // Adjust the power based on the factor (change based on smoothness of floor surface)
 
             initialMovePower = Range.clip(movePower * MOVE_POWER_FACTOR, -1, 1);
+            //telemetry.addData("lastDesired","heading: " + lastDesiredHeading);
 
             for (int counter = 1; counter < 25; counter++) {
                 setMotorPower(initialMovePower/25 * counter);
@@ -114,10 +115,14 @@ public final class Motion {
         double rightPositionDifference = motorRight.getCurrentPosition() - targetRightPosition;
         double leftPositionDifference = motorLeft.getCurrentPosition() - targetLeftPosition;
 
-        while (Math.abs(rightPositionDifference) > DISTANCE_ERROR_TOLERANCE_IN_TICKS ||
-                Math.abs(leftPositionDifference) > DISTANCE_ERROR_TOLERANCE_IN_TICKS)  {
+        ElapsedTime moveElapsedTime = new ElapsedTime();
+        moveElapsedTime.reset();
 
-            double headingDifference = navigation.getHeadingDifference(lastDesiredHeading); //initialHeading);
+        while (Math.abs(rightPositionDifference) > DISTANCE_ERROR_TOLERANCE_IN_TICKS ||
+                Math.abs(leftPositionDifference) > DISTANCE_ERROR_TOLERANCE_IN_TICKS) {
+        //||  (timeout > 0 && moveElapsedTime.time() > timeout))  {
+
+            double headingDifference = navigation.getHeadingDifference(lastDesiredHeading);
 
             double rightPower = Range.clip(initialMovePower * MOVE_POWER_FACTOR, -1, 1);
             double leftPower = rightPower;
@@ -144,10 +149,10 @@ public final class Motion {
         }
 
         stopDriveMotors();
-        Thread.sleep(100);
+        Thread.sleep(300);
     }
 
-    public void turn(DriveTurnDirection direction, double turnAngle) throws InterruptedException {
+    public double turn(DriveTurnDirection direction, double turnAngle, double lastDesiredHeading) throws InterruptedException {
 
         motorRight.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
         motorLeft.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
@@ -215,10 +220,10 @@ public final class Motion {
             Thread.sleep(20); // simulate the slower looping of a TeleOp mode - 50 times per second
         }
 
-
-
         stopDriveMotors();
-        Thread.sleep(300);  // Reset the motors after turning
+        Thread.sleep(300);  // Rest the motors after turning
+
+        return lastDesiredHeading;
     }
 
     public void setMotorPower(double power) {

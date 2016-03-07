@@ -68,9 +68,11 @@ public class TankDrive extends OpMode {
     private Servo servoDebrisPusher;
     private Servo servoZipLineLeft;
     private Servo servoZipLineRight;
+    private Servo servoAllClearRight;
+    private Servo servoAllClearLeft;
 
     DriveMoveDirection robotDirection;
-    public final double DRIVE_MOTOR_POWER_FACTOR = .7;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
+    public final double DRIVE_MOTOR_POWER_FACTOR = .6;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
 
     double HOOK_MOTOR_POWER_FACTOR = 1;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
 
@@ -87,31 +89,28 @@ public class TankDrive extends OpMode {
     private final double HOOK_OUT_SPEED = 1;
     private final double HOOK_IN_SPEED = -.8;
 
-    private final double DEFAULT_DRIVE_MOTOR_POWER = .6;
+    //private final double DEFAULT_DRIVE_MOTOR_POWER = .6;
 
     double tapeMeasureUpDownPosition = HOOK_MAX_POSITION;
     double tapeMeasureUpDownDelta = 0.001;   // amount to change the tape measure up down servo position
 
-    private final double CLIMBER_DUMPER_ARM_IN = 1;
-    private final double CLIMBER_DUMPER_ARM_OUT = 0;
-    private final double CLIMBER_DUMPER_EXTEND_SLOW_CHANGE = 0.01;  // amount to change the climber dumper up down
-    private final double CLIMBER_DUMPER_RETRACT_SLOW_CHANGE = 0.0005;  // amount to change the climber dumper up down
-    //private final double CLIMBER_DUMPER_LID_CLOSED_POSITION = 0.15;
-    //private final double CLIMBER_DUMPER_LID_OPEN_POSITION = 0.75;
+    private final double CLIMBER_DUMPER_ARM_IN = 0;
+    private final double CLIMBER_DUMPER_ARM_OUT = 1;
+    private final double CLIMBER_DUMPER_SLOW_CHANGE = 0.005;  // amount to change the climber dumper up down
 
-    //    Below is the Climber ZipLine Release initial positions
-    private double INIT_ZIP_LINE_LEFT_POSITION = 1;
-    private double INIT_ZIP_LINE_RIGHT_POSITION = 0;
+    private double ALL_CLEAR_LEFT_UP_POSITION = .75;
+    private double ALL_CLEAR_RIGHT_UP_POSITION = .45;
+    private double ALL_CLEAR_LEFT_DOWN_POSITION = 0;
+    private double ALL_CLEAR_RIGHT_DOWN_POSITION = 1;
 
-    double zipLineLeftUpDownPosition = INIT_ZIP_LINE_LEFT_POSITION;
-    double zipLineRightUpDownPosition = INIT_ZIP_LINE_RIGHT_POSITION;
-
-//    Below is the Climber ZipLine Release positions
+    // Climber ZipLine positions
     private final double ZIP_LINE_LEFT_UP_POSITION = 1;
-    private final double ZIP_LINE_LEFT_DOWN_POSITION = 0.35;
+    private final double ZIP_LINE_LEFT_MID_POSITION = .3;
+    private final double ZIP_LINE_LEFT_DOWN_POSITION = .085;
 
-    private final double ZIP_LINE_RIGHT_UP_POSITION = 0.15;
-    private final double ZIP_LINE_RIGHT_DOWN_POSITION = .8;
+    private final double ZIP_LINE_RIGHT_UP_POSITION = 0;
+    private final double ZIP_LINE_RIGHT_MID_POSITION = .7;
+    private final double ZIP_LINE_RIGHT_DOWN_POSITION = .9;
 
     private Motion motion;
 
@@ -147,6 +146,8 @@ public class TankDrive extends OpMode {
             servoDebrisPusher = hardwareMap.servo.get("Debris Pusher");
             servoZipLineLeft = hardwareMap.servo.get("Zip Line Left");
             servoZipLineRight = hardwareMap.servo.get("Zip Line Right");
+            servoAllClearRight = hardwareMap.servo.get ("All Clear Right");
+            servoAllClearLeft = hardwareMap.servo.get ("All Clear Left");
 
             setServoPositions();
         }
@@ -160,9 +161,14 @@ public class TankDrive extends OpMode {
 
         // assign the starting position of the servos
         servoTapeMeasureUpDown.setPosition(HOOK_MAX_POSITION);
-        servoClimberDumperArm.setPosition(CLIMBER_DUMPER_ARM_IN);
-        servoZipLineLeft.setPosition(INIT_ZIP_LINE_LEFT_POSITION);
-        servoZipLineRight.setPosition(INIT_ZIP_LINE_RIGHT_POSITION);
+
+        double climberDumperPosition = servoClimberDumperArm.getPosition();
+        servoClimberDumperArm.setPosition(climberDumperPosition);
+
+        servoZipLineLeft.setPosition(ZIP_LINE_LEFT_UP_POSITION);
+        servoZipLineRight.setPosition(ZIP_LINE_RIGHT_UP_POSITION);
+        servoAllClearLeft.setPosition(ALL_CLEAR_LEFT_UP_POSITION);
+        servoAllClearRight.setPosition(ALL_CLEAR_RIGHT_UP_POSITION);
         initializeDebrisPusher();
     }
 
@@ -240,7 +246,6 @@ public class TankDrive extends OpMode {
         }
 
 
-
         // ********
         // Change the position of the debris pusher
         // ********
@@ -270,7 +275,24 @@ public class TankDrive extends OpMode {
             servoZipLineRight.setPosition(ZIP_LINE_RIGHT_DOWN_POSITION);
         }
 
+        if (gamepad1.x && gamepad1.back) {
+            servoZipLineLeft.setPosition(ZIP_LINE_LEFT_MID_POSITION);
+        }
+        else if (gamepad1.x && gamepad1.start) {
+            servoZipLineRight.setPosition(ZIP_LINE_RIGHT_MID_POSITION);
+        }
 
+        //********
+        //all clear
+        //********
+        if (gamepad1.right_stick_button && gamepad1.a){
+            servoAllClearLeft.setPosition(ALL_CLEAR_LEFT_UP_POSITION);
+            servoAllClearRight.setPosition(ALL_CLEAR_RIGHT_UP_POSITION);
+        }
+        else if (gamepad1.left_stick_button && gamepad1.a){
+            servoAllClearLeft.setPosition(ALL_CLEAR_LEFT_DOWN_POSITION);
+            servoAllClearRight.setPosition(ALL_CLEAR_RIGHT_DOWN_POSITION);
+        }
         // ********
         // Dump the climbers
         // ********
@@ -300,9 +322,9 @@ public class TankDrive extends OpMode {
 
 
         // ********
-        // Change the position of the debris pusher
+        // move speedy backward
         // ********
-        if (gamepad1.left_trigger > 0 && gamepad1.right_trigger > 0) {
+        if (gamepad1.left_bumper && gamepad1.a) {
             motion.simpleMoveBackwards();
         }
         /*
@@ -349,17 +371,16 @@ public class TankDrive extends OpMode {
 
     private void retractDumper() {
         double armPosition = servoClimberDumperArm.getPosition();
-        armPosition += CLIMBER_DUMPER_EXTEND_SLOW_CHANGE;
-        armPosition = Range.clip(armPosition, CLIMBER_DUMPER_ARM_OUT, CLIMBER_DUMPER_ARM_IN);
+        armPosition -= CLIMBER_DUMPER_SLOW_CHANGE;
+        armPosition = Range.clip(armPosition,  CLIMBER_DUMPER_ARM_IN, CLIMBER_DUMPER_ARM_OUT);
         servoClimberDumperArm.setPosition(armPosition);
     }
-
 
     private void extendClimberDumperArm() {
 
         double armPosition = servoClimberDumperArm.getPosition();
-        armPosition -= CLIMBER_DUMPER_RETRACT_SLOW_CHANGE;
-        armPosition = Range.clip(armPosition, CLIMBER_DUMPER_ARM_OUT, CLIMBER_DUMPER_ARM_IN);
+        armPosition += CLIMBER_DUMPER_SLOW_CHANGE;
+        armPosition = Range.clip(armPosition, CLIMBER_DUMPER_ARM_IN, CLIMBER_DUMPER_ARM_OUT);
         servoClimberDumperArm.setPosition(armPosition);
     }
 

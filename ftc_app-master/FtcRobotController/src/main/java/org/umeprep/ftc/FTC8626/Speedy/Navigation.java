@@ -63,28 +63,22 @@ public class Navigation {
             v_sensor_gyro = ClassFactory.createAdaFruitBNO055IMU(opMode, device, parameters);
             v_sensor_gyro.startAccelerationIntegration(new Position(), new Velocity());
 
-            opMode.telemetry.addData("Robot says", "IMU acceleration started");
+            opMode.telemetry.addData("IMU started","waiting 7 seconds");
 
         } catch (Exception ex) {
             opMode.telemetry.addData("Error creating IMU Device", ex.getMessage());
             throw ex;
         }
 
+        // Sleep 15 seconds to allow gyro to fully calibrate
+        Thread.sleep(7000);
+
         boolean isGyroCalibrated = v_sensor_gyro.isGyroCalibrated();
-
-        for (int x=1; x < 15; x++) {
-            if (!isGyroCalibrated) {
-                Thread.sleep(1000);
-                isGyroCalibrated = v_sensor_gyro.isGyroCalibrated();
-            }
-            else {
-                opMode.telemetry.addData("IMU", "gyro calibrated");
-                break;
-            }
-        }
-
         if (!isGyroCalibrated) {
             throw new Exception("Gyro failed to calibrate");
+        }
+        else {
+            opMode.telemetry.addData("IMU", "gyro calibrated");
         }
     }
 

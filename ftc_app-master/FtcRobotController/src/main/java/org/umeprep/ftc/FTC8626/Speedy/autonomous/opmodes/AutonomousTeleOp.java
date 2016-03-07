@@ -31,17 +31,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 package org.umeprep.ftc.FTC8626.Speedy.autonomous.opmodes;
 
-import org.swerverobotics.library.ClassFactory;
 //import org.swerverobotics.library.SynchronousOpMode;
-import org.swerverobotics.library.interfaces.IBNO055IMU;
-import org.swerverobotics.library.interfaces.Position;
 //import org.swerverobotics.library.interfaces.TeleOp;
-import org.swerverobotics.library.interfaces.Velocity;
-import org.swerverobotics.library.internal.Util;
 import org.umeprep.ftc.FTC8626.Speedy.DebrisPusherDirection;
 import org.umeprep.ftc.FTC8626.Speedy.Navigation;
-import org.umeprep.ftc.FTC8626.Speedy.Utility;
-import org.umeprep.ftc.FTC8626.Speedy.autonomous.Category;
+        import org.umeprep.ftc.FTC8626.Speedy.autonomous.Category;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveMoveDirection;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.DriveTurnDirection;
 import org.umeprep.ftc.FTC8626.Speedy.autonomous.MenuChoices;
@@ -50,15 +44,11 @@ import org.umeprep.ftc.FTC8626.Speedy.autonomous.SingleSelectCategory;
 import org.umeprep.ftc.FTC8626.Speedy.Motion;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotorController;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.I2cDevice;
-import com.qualcomm.robotcore.hardware.Servo;
+        import com.qualcomm.robotcore.hardware.Servo;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.TouchSensor;
-import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
+        import com.qualcomm.robotcore.util.Range;
 
 
 /** Linear Tele Op Mode for Autonomous movement
@@ -75,18 +65,26 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     private final String STARTING_POSITION_LEFT = "LEFT";
     private final String STARTING_POSITION_RIGHT = "RIGHT";
     private final String START_DELAY = "START DELAY";
+    private final String SHOULD_PARK = "SHOULD_PARK";
+    private final String SHOULD_PARK_TRUE = "TRUE";
+    private final String SHOULD_PARK_FALSE = "FALSE";
 
     private final double HOOK_STRAIGHT_UP_POSITION = .59;
-    private final double CLIMBER_DUMPER_ARM_IN = 1;
-    private final double CLIMBER_DUMPER_ARM_OUT = 0;
-    private final double CLIMBER_DROP = 12;
-    private final double ZIP_LINE_LEFT_DOWN = .2;
-    private final double ZIP_LINE_RIGHT_DOWN = .2;
-    private final double ZIP_LINE_LEFT_UP = .5;
-    private final double ZIP_LINE_RIGHT_UP = .5;
+    private final double CLIMBER_DUMPER_ARM_IN = 0;
+    private final double CLIMBER_DUMPER_ARM_OUT = 1;
+    private final double CLIMBER_DROP = 10;
+    private final double CLIMBER_DUMPER_SLOW_CHANGE = 0.005;  // amount to change the climber dumper up down
+
+    private final double ZIP_LINE_LEFT_UP = 1;
+    private final double ZIP_LINE_RIGHT_UP = 0;
 
     private final double DEBRIS_PUSHER_UP = .7;
     private final double DEBRIS_PUSHER_DOWN = .2;
+
+    //private double ALL_CLEAR_LEFT_UP_POSITION = .65;
+    private double ALL_CLEAR_RIGHT_UP_POSITION = .45;
+    private double ALL_CLEAR_LEFT_INIT_POSITION = 1;
+    private double ALL_CLEAR_RIGHT_INIT_POSITION = 0;
 
     // Motor variables
     private Motion motion;
@@ -100,16 +98,21 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     private Servo servoDebrisPusher;
     private Servo servoZipLineLeft;
     private Servo servoZipLineRight;
+    private Servo servoAllClearRight;
+    private Servo servoAllClearLeft;
+
 
     // Menu variables
     private OptionMenu menu;
 
     // Sensor variables
     private Navigation navigation;
-    private ElapsedTime elapsed = new ElapsedTime();
-    private TouchSensor v_sensor_touch;
+    //private ElapsedTime elapsed = new ElapsedTime();
+    //private TouchSensor v_sensor_touch;
 
-    private ElapsedTime elapsedTime;
+    //private ElapsedTime elapsedTime;
+
+    //private boolean robotInCorrectDumpingPosition = true;
 
     @Override
     public void runOpMode() { //main() throws InterruptedException {
@@ -117,6 +120,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         try {
 
             initializeRobot();
+
             waitForStart();
 
             //elapsedTime = new ElapsedTime();
@@ -136,12 +140,12 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
     private void initializeRobot() throws InterruptedException, IllegalStateException, Exception {
 
-        InitializeServos();
         InitializeSensors();
+        InitializeServos();
         InitializeMenu();
+
         // initialize Motors has to go after sensors because it needs the navigation
         InitializeMotors();
-
     }
 
     private void InitializeMenu() throws InterruptedException {
@@ -161,8 +165,14 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         startPosition.addOption(STARTING_POSITION_RIGHT);
         builder.addCategory(startPosition);
 
+        //Setup whether or not to park in floor goal zone
+        SingleSelectCategory shouldPark = new SingleSelectCategory(SHOULD_PARK);
+        shouldPark.addOption(SHOULD_PARK_TRUE);
+        shouldPark.addOption(SHOULD_PARK_FALSE);
+        builder.addCategory(shouldPark);
+
         //setup a start delay category
-            SingleSelectCategory startDelay = new SingleSelectCategory(START_DELAY);
+        SingleSelectCategory startDelay = new SingleSelectCategory(START_DELAY);
         startDelay.addOption("0");
         startDelay.addOption("1");
         startDelay.addOption("2");
@@ -175,16 +185,6 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         startDelay.addOption("9");
         builder.addCategory(startDelay);
 
-        /*//Setup a TextCategory
-        TextCategory robotName = new TextCategory("Speedy");
-        builder.addCategory(robotName);
-
-        //Setup a NumberCategory
-        NumberCategory time = new NumberCategory("Time");
-        builder.addCategory(time);
-        */
-
-
         //Create menu
         menu = builder.create();
 
@@ -195,19 +195,17 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     private void InitializeSensors() throws IllegalStateException, Exception {
 
         //Initialize touch sensor
+        /*
         try {
             v_sensor_touch = hardwareMap.touchSensor.get("Touch");
-        } catch (Exception p_exeception) {
-            //m_warning_message("Touch_1");
-            //DbgLog.msg (p_exeception.getLocalizedMessage ());
+        } catch (Exception p_exception) {
             v_sensor_touch = null;
         }
+        */
 
         navigation = new Navigation(this, hardwareMap);
         navigation.InitializeSensorGyro();
     }
-
-
 
     private void InitializeMotors() {
 
@@ -226,12 +224,15 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
         //initializeDebrisPusher to the down position
         servoDebrisPusher = hardwareMap.servo.get("Debris Pusher");
-       // servoDebrisPusherLeft = hardwareMap.servo.get("Debris Pusher Left");
         servoDebrisPusher.setPosition(DEBRIS_PUSHER_DOWN);
-       // servoDebrisPusherLeft.setPosition(LEFT_DEBRIS_PUSHER_DOWN);
 
         servoTapeMeasureUpDown = hardwareMap.servo.get("Hook Control");
         servoTapeMeasureUpDown.setPosition(HOOK_STRAIGHT_UP_POSITION);
+
+        servoAllClearRight = hardwareMap.servo.get ("All Clear Right");
+        servoAllClearLeft = hardwareMap.servo.get ("All Clear Left");
+        servoAllClearLeft.setPosition(ALL_CLEAR_LEFT_INIT_POSITION);
+        servoAllClearRight.setPosition(ALL_CLEAR_RIGHT_INIT_POSITION);
 
         servoClimberDumperArm = hardwareMap.servo.get("Climber Dumper Arm");
         servoClimberDumperArm.setPosition(CLIMBER_DUMPER_ARM_IN);
@@ -241,42 +242,38 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
         servoZipLineRight = hardwareMap.servo.get("Zip Line Right");
         servoZipLineRight.setPosition(ZIP_LINE_RIGHT_UP);
-
-        servoZipLineLeft = hardwareMap.servo.get("Zip Line Left");
-        servoZipLineLeft.setPosition(ZIP_LINE_LEFT_DOWN);
-
-        servoZipLineLeft = hardwareMap.servo.get("Zip Line Right");
-        servoZipLineLeft.setPosition(ZIP_LINE_RIGHT_DOWN);
-
     }
 
     private void makeSomeMoves() throws Exception, InterruptedException {
 
         MenuChoices menuChoices = getMenuChoices();
 
-        Thread.sleep(menuChoices.getStartDelay() * 1000);
+        int delay = menuChoices.getStartDelay();
+        if (delay > 0 )
+            Thread.sleep(delay * 1000);
 
         double lastDesiredHeading = moveTowardBeacon(menuChoices);
 
+        /* remove this if not needed
+        if (robotInCorrectDumpingPosition) {
+            telemetry.addData("dumping climbers, robotInCorrectDumpingPosition: ", robotInCorrectDumpingPosition);
+        }
+        else {
+            telemetry.addData("NOT dumping robotInCorrectDumpingPosition: ", robotInCorrectDumpingPosition);
+        }
+        */
         dumpClimbers(lastDesiredHeading);
 
-        moveTowardFloorGoal(menuChoices, lastDesiredHeading);
 
-//      stopDriveMotors();
-    }
-
-    private void moveTowardFloorGoal(MenuChoices menuChoices, double lastDesiredHeading) throws InterruptedException {
-    // Only enable if fixed Beacon/ClimberDumper as this sets up the floor goal.
-
-        motion.move(DriveMoveDirection.Forward, 4, lastDesiredHeading);
-
-        DriveTurnDirection direction = DriveTurnDirection.Right;
-        if (menuChoices.getAlliance() == ALLIANCE_RED) {
-            direction = DriveTurnDirection.Left;
+        if (menuChoices.getShouldPark() == SHOULD_PARK_TRUE) {
+            telemetry.addData("parking: ", menuChoices.getShouldPark());
+            lastDesiredHeading = moveTowardFloorGoal(menuChoices, lastDesiredHeading);
+        }
+        else {
+            telemetry.addData("NOT parking: ", menuChoices.getShouldPark());
         }
 
-        motion.turn(direction, 90);
-        motion.move(DriveMoveDirection.Forward, 12, lastDesiredHeading);
+        RetractDumperArm();
     }
 
     private void setDebrisPusher(DebrisPusherDirection direction) throws InterruptedException {
@@ -293,30 +290,6 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         }
     }
 
-    private void dumpClimbers(double lastDesiredHeading) throws InterruptedException {
-
-        double dumperPosition = servoClimberDumperArm.getPosition();
-
-        while (dumperPosition > CLIMBER_DUMPER_ARM_OUT) {
-            dumperPosition -= .005;
-            dumperPosition = Range.clip(dumperPosition, CLIMBER_DUMPER_ARM_OUT, CLIMBER_DUMPER_ARM_IN);
-            servoClimberDumperArm.setPosition(dumperPosition);
-            Thread.sleep(20);
-        }
-
-        Thread.sleep(1000);
-        motion.move(DriveMoveDirection.Backward, CLIMBER_DROP, lastDesiredHeading);
-
-        while (dumperPosition < CLIMBER_DUMPER_ARM_IN) {
-            dumperPosition += .005;
-            dumperPosition = Range.clip(dumperPosition, CLIMBER_DUMPER_ARM_OUT, CLIMBER_DUMPER_ARM_IN);
-            servoClimberDumperArm.setPosition(dumperPosition);
-            Thread.sleep(20);
-        }
-
-        //servoClimberDumperArm.setPosition(CLIMBER_DUMPER_ARM_IN);
-    }
-
     private MenuChoices getMenuChoices() throws Exception {
 
         MenuChoices menuChoices = new MenuChoices();
@@ -328,13 +301,18 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         for (Category c : menu.getCategories()) {
 
             String categoryName = c.getName();
+            telemetry.addData("menu categoryName: ", categoryName);
+            telemetry.addData("menu selectedOption: ", menu.selectedOption(categoryName));
+
             if (categoryName == ALLIANCE)
                 menuChoices.setAlliance(menu.selectedOption(categoryName));
             else if (categoryName == STARTING_POSITION)
                 menuChoices.setStartingPosition(menu.selectedOption(categoryName));
             else if (categoryName == START_DELAY)
                 menuChoices.setStartDelay(menu.selectedOption(categoryName));
-
+            else if (categoryName == SHOULD_PARK) {
+                menuChoices.setShouldPark(menu.selectedOption(categoryName));
+            }
         }
 
         return menuChoices;
@@ -342,10 +320,10 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
     private double moveTowardBeacon(MenuChoices menuChoices) throws InterruptedException {
 
-        elapsedTime = new ElapsedTime();
-        elapsedTime.reset();
+//        ElapsedTime elapsedTime = new ElapsedTime();
+//        elapsedTime.reset();
 
-        double realZero = elapsedTime.time();
+//        double realZero = elapsedTime.time();
 
         double lastDesiredHeading = navigation.getHeading();
         telemetry.addData("first Heading: ", lastDesiredHeading);
@@ -364,78 +342,149 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
             direction = DriveTurnDirection.Left;
 
-            // Right
             if (menuChoices.getStartingPosition() == STARTING_POSITION_RIGHT) {
+                // Red Right
                 firstMoveDistance = 18;
+                firstTurnDegrees = 45;
+                secondMoveDistance = 66;
+                secondTurnDegrees = 45;
+                thirdMoveDistance = 16;
+            } else {
+                // Red Left
+                firstMoveDistance = 32;
                 firstTurnDegrees = 43;
-                secondMoveDistance = 67;
-                secondTurnDegrees = 42;
-                thirdMoveDistance = 18;
+                secondMoveDistance = 47;
+                secondTurnDegrees = 45;
+                thirdMoveDistance = 8; //16);
             }
-            else { // Left
-                firstMoveDistance = 30;
-                firstTurnDegrees = 44;
-                secondMoveDistance = 48;
-                secondTurnDegrees = 43;
-                thirdMoveDistance = 12; //16);
-            }
-        }
-        else { // Blue alliance
+        } else { // Blue alliance
 
             direction = DriveTurnDirection.Right;
 
-            // Right
-            if (menuChoices.getStartingPosition() == STARTING_POSITION_RIGHT){
-                firstMoveDistance = 35;
-                firstTurnDegrees = 44;
-                secondMoveDistance = 52;
-                secondTurnDegrees = 45;
-                thirdMoveDistance = 12; //4);
-            }
-            else {  // Left
+            if (menuChoices.getStartingPosition() == STARTING_POSITION_RIGHT) {
+                // Blue Right
+                firstMoveDistance = 33;
+                firstTurnDegrees = 40;
+                secondMoveDistance = 46;
+                secondTurnDegrees = 42;
+                thirdMoveDistance = 6; //4);
+            } else {
+                // Blue Left
                 firstMoveDistance = 23;
-                firstTurnDegrees = 44;
-                secondMoveDistance = 69;
+                firstTurnDegrees = 43;
+                secondMoveDistance = 65;
                 secondTurnDegrees = 43;
-                thirdMoveDistance = 12; //18);
+                thirdMoveDistance = 14; //18);
             }
         }
 
         motion.move(DriveMoveDirection.Forward, firstMoveDistance, lastDesiredHeading);
 /*
         FlickDebris(3);
-
-        telemetry.addData("elapsed: ", elapsedTime.time() - realZero);
 */
-        motion.turn(direction, firstTurnDegrees);
+        //telemetry.addData("elapsed: ", elapsedTime.time() - realZero);
+
+        lastDesiredHeading = motion.turn(direction, firstTurnDegrees, lastDesiredHeading);
+        telemetry.addData("first turn lastDesiredHeading: ", lastDesiredHeading);
         motion.move(DriveMoveDirection.Forward, secondMoveDistance, lastDesiredHeading);
-
+/*
         FlickDebris(5, lastDesiredHeading);
+*/
+        //telemetry.addData("elapsed: ", elapsedTime.time() - realZero);
 
-        telemetry.addData("elapsed: ", elapsedTime.time() - realZero);
+        lastDesiredHeading = motion.turn(direction, secondTurnDegrees, lastDesiredHeading);
+        telemetry.addData("2nd turn lastDesiredHeading: ", lastDesiredHeading);
 
-        motion.turn(direction, secondTurnDegrees);
+        MoveAllClearArmOutOfTheWayOfClimberDumper();
+
         motion.move(DriveMoveDirection.Forward, thirdMoveDistance, lastDesiredHeading);
 
-        telemetry.addData("elapsed: ", elapsedTime.time() - realZero);
-
+        telemetry.addData("approaching dumper: lastDesiredHeading ", lastDesiredHeading);
+/*
         while(!(v_sensor_touch.isPressed())) {
-            motion.move(DriveMoveDirection.Forward, 1, lastDesiredHeading);
+            //do we need to keep setting lastDesiredHeading each time? It's only moving forward, right?
+            motion.move(DriveMoveDirection.Forward, 1, lastDesiredHeading, 3);
 
-            if ((elapsed.time() - realZero) > 35) {
-                telemetry.addData("breaking out, elapsed: ", elapsedTime.time() - realZero);
+            telemetry.addData("approached an inch: ", elapsedTime.time());
+            telemetry.addData("lastDesiredHeading: ", lastDesiredHeading);
+
+            if ((elapsedTime.time() - realZero) > 30) {
+                telemetry.addData("Timed out, not dumping, calculated elapsed: ", elapsedTime.time() - realZero);
+                robotInCorrectDumpingPosition = false;
                 break;  // time to dump the climbers so exit the while loop
             }
         }
-
+*/
         return lastDesiredHeading;
     }
 
-    private void FlickDebris(int clearingDistance, double lastDesiredHeading) throws InterruptedException {
-        motion.move(DriveMoveDirection.Forward, clearingDistance, lastDesiredHeading);
-        setDebrisPusher(DebrisPusherDirection.Up);
-        motion.move(DriveMoveDirection.Backward, clearingDistance, lastDesiredHeading);
-        setDebrisPusher(DebrisPusherDirection.Down);
+    private void MoveAllClearArmOutOfTheWayOfClimberDumper() throws InterruptedException {
+        // Slowly move all right clear arm
+        double rightAllClearArmPosition = servoAllClearRight.getPosition();
+        while (rightAllClearArmPosition < ALL_CLEAR_RIGHT_UP_POSITION) {
+            rightAllClearArmPosition += .005;
+            rightAllClearArmPosition = Range.clip(rightAllClearArmPosition, ALL_CLEAR_RIGHT_INIT_POSITION, ALL_CLEAR_RIGHT_UP_POSITION);
+            servoAllClearRight.setPosition(rightAllClearArmPosition);
+            Thread.sleep(20);
+        }
+    }
+
+    private void dumpClimbers(double lastDesiredHeading) throws InterruptedException {
+
+        ExtendDumperArm();
+        Thread.sleep(500);
+
+        motion.move(DriveMoveDirection.Backward, CLIMBER_DROP, lastDesiredHeading);
+        Thread.sleep(300);
+    }
+
+    private void ExtendDumperArm() throws InterruptedException {
+        double dumperPosition = servoClimberDumperArm.getPosition();
+        while (dumperPosition < CLIMBER_DUMPER_ARM_OUT) {
+            dumperPosition += CLIMBER_DUMPER_SLOW_CHANGE;
+            dumperPosition = Range.clip(dumperPosition, CLIMBER_DUMPER_ARM_IN, CLIMBER_DUMPER_ARM_OUT);
+            servoClimberDumperArm.setPosition(dumperPosition);
+            Thread.sleep(20);
+        }
+    }
+
+    private void RetractDumperArm() throws InterruptedException {
+
+        double dumperPosition = servoClimberDumperArm.getPosition();
+        while (dumperPosition > CLIMBER_DUMPER_ARM_IN) {
+            dumperPosition -= CLIMBER_DUMPER_SLOW_CHANGE;
+            dumperPosition = Range.clip(dumperPosition, CLIMBER_DUMPER_ARM_IN, CLIMBER_DUMPER_ARM_OUT);
+            servoClimberDumperArm.setPosition(dumperPosition);
+            Thread.sleep(20);
+        }
+
+        servoAllClearRight.setPosition(ALL_CLEAR_RIGHT_INIT_POSITION);
+    }
+
+    /*
+        private void FlickDebris(int clearingDistance, double lastDesiredHeading) throws InterruptedException {
+            lastDesiredHeading = motion.move(DriveMoveDirection.Forward, clearingDistance, lastDesiredHeading);
+            setDebrisPusher(DebrisPusherDirection.Up);
+            lastDesiredHeading = motion.move(DriveMoveDirection.Backward, clearingDistance, lastDesiredHeading);
+            setDebrisPusher(DebrisPusherDirection.Down);
+        }
+    */
+    private double moveTowardFloorGoal(MenuChoices menuChoices, double lastDesiredHeading) throws InterruptedException {
+
+        DriveTurnDirection direction = DriveTurnDirection.Left;  // Turn left for Red alliance by default
+        if (menuChoices.getAlliance() == ALLIANCE_BLUE) {
+            direction = DriveTurnDirection.Right;
+        }
+
+        lastDesiredHeading = motion.turn(direction, 82, lastDesiredHeading);
+
+        int moveAmount = 15;
+        if (menuChoices.getStartingPosition() == STARTING_POSITION_RIGHT) {
+            moveAmount = 17;
+        }
+        motion.move(DriveMoveDirection.Forward, moveAmount, lastDesiredHeading);
+
+        return lastDesiredHeading;
     }
 
     private void stopServos() throws InterruptedException {
@@ -455,7 +504,9 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
 
 
-/*    private void turn(DriveTurnDirection robotTurnDirection, Double turnAngle) throws InterruptedException {
+/********* This turn method was created to use the encoders when the Gyro failed *****/
+/*
+    private void turn(DriveTurnDirection robotTurnDirection, Double turnAngle) throws InterruptedException {
 
        // motorRight.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
         //motorLeft.setMode(DcMotorController.RunMode.RUN_WITHOUT_ENCODERS);
