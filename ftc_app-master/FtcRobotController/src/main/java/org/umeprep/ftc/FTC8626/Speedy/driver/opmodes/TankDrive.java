@@ -72,12 +72,12 @@ public class TankDrive extends OpMode {
     private Servo servoAllClearLeft;
 
     DriveMoveDirection robotDirection;
-    public final double DRIVE_MOTOR_POWER_FACTOR = .6;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
+    public final double DRIVE_MOTOR_POWER_FACTOR = .8;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
 
     double HOOK_MOTOR_POWER_FACTOR = 1;  // 0 to 1, higher number gives motors more power, use lower numbers for testing
 
     // Debris pusher constants
-    private final double DEBRIS_PUSHER_UP = .70;
+    private final double DEBRIS_PUSHER_UP = 1;
 
     private final double DEBRIS_PUSHER_DOWN = .22;
 
@@ -98,10 +98,13 @@ public class TankDrive extends OpMode {
     private final double CLIMBER_DUMPER_ARM_OUT = 1;
     private final double CLIMBER_DUMPER_SLOW_CHANGE = 0.005;  // amount to change the climber dumper up down
 
-    private double ALL_CLEAR_LEFT_UP_POSITION = .75;
+    private double ALL_CLEAR_LEFT_INIT_POSITION = 1;
     private double ALL_CLEAR_RIGHT_UP_POSITION = .45;
     private double ALL_CLEAR_LEFT_DOWN_POSITION = 0;
     private double ALL_CLEAR_RIGHT_DOWN_POSITION = 1;
+    private double ALL_CLEAR_RIGHT_INIT_POSITION = 0;
+    private final double ALL_CLEAR_SLOW_CHANGE = 0.005;  // amount to change the all clear up down
+
 
     // Climber ZipLine positions
     private final double ZIP_LINE_LEFT_UP_POSITION = 1;
@@ -163,11 +166,11 @@ public class TankDrive extends OpMode {
         servoTapeMeasureUpDown.setPosition(HOOK_MAX_POSITION);
 
         double climberDumperPosition = servoClimberDumperArm.getPosition();
-        servoClimberDumperArm.setPosition(climberDumperPosition);
+        servoClimberDumperArm.setPosition(CLIMBER_DUMPER_ARM_IN);
 
         servoZipLineLeft.setPosition(ZIP_LINE_LEFT_UP_POSITION);
         servoZipLineRight.setPosition(ZIP_LINE_RIGHT_UP_POSITION);
-        servoAllClearLeft.setPosition(ALL_CLEAR_LEFT_UP_POSITION);
+        servoAllClearLeft.setPosition(ALL_CLEAR_LEFT_INIT_POSITION);
         servoAllClearRight.setPosition(ALL_CLEAR_RIGHT_UP_POSITION);
         initializeDebrisPusher();
     }
@@ -286,7 +289,7 @@ public class TankDrive extends OpMode {
         //all clear
         //********
         if (gamepad1.right_stick_button && gamepad1.a){
-            servoAllClearLeft.setPosition(ALL_CLEAR_LEFT_UP_POSITION);
+            servoAllClearLeft.setPosition(ALL_CLEAR_LEFT_INIT_POSITION);
             servoAllClearRight.setPosition(ALL_CLEAR_RIGHT_UP_POSITION);
         }
         else if (gamepad1.left_stick_button && gamepad1.a){
@@ -319,20 +322,26 @@ public class TankDrive extends OpMode {
         else if (gamepad1.x){
             tapeMeasureUpDownPosition = HOOK_MIN_POSITION;
         }
-
-
+        else if (gamepad1.guide && gamepad1.right_bumper)
+        {
+            tapeMeasureUpDownPosition = HOOK_MAX_POSITION;
+        }
         // ********
         // move speedy backward
         // ********
         if (gamepad1.left_bumper && gamepad1.a) {
             motion.simpleMoveBackwards();
         }
-        /*
-        else if (gamepad1.left_trigger > 0 && gamepad1.right_bumper) {
-            // motion.stopDriveMotors();
-            motion.setMotorPower(0);
+
+        //********
+        //reset all clear servos
+        //********
+        if (gamepad1.guide && gamepad1.a) {
+            servoAllClearLeft.setPosition(ALL_CLEAR_LEFT_INIT_POSITION);
+            servoAllClearRight.setPosition(ALL_CLEAR_RIGHT_INIT_POSITION);
+
         }
-        */
+
 
         //
         //clip the hook speed values so that the values never go below the limits of the hardware

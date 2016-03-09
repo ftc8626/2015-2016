@@ -47,8 +47,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
         import com.qualcomm.robotcore.hardware.Servo;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.TouchSensor;
-        import com.qualcomm.robotcore.util.Range;
+import com.qualcomm.robotcore.util.Range;
 
 
 /** Linear Tele Op Mode for Autonomous movement
@@ -66,14 +65,15 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     private final String STARTING_POSITION_RIGHT = "RIGHT";
     private final String START_DELAY = "START DELAY";
     private final String SHOULD_PARK = "SHOULD_PARK";
-    private final String SHOULD_PARK_TRUE = "TRUE";
-    private final String SHOULD_PARK_FALSE = "FALSE";
+    private final String SHOULD_PARK_TRUE = "Yes";
+    private final String SHOULD_PARK_FALSE = "NO";
 
     private final double HOOK_STRAIGHT_UP_POSITION = .59;
     private final double CLIMBER_DUMPER_ARM_IN = 0;
     private final double CLIMBER_DUMPER_ARM_OUT = 1;
     private final double CLIMBER_DROP = 10;
     private final double CLIMBER_DUMPER_SLOW_CHANGE = 0.005;  // amount to change the climber dumper up down
+    private final double ALL_CLEAR_SLOW_CHANGE = 0.005;  // amount to change the all clear up down
 
     private final double ZIP_LINE_LEFT_UP = 1;
     private final double ZIP_LINE_RIGHT_UP = 0;
@@ -273,7 +273,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
             telemetry.addData("NOT parking: ", menuChoices.getShouldPark());
         }
 
-        RetractDumperArm();
+        RetractAllClearRight();
     }
 
     private void setDebrisPusher(DebrisPusherDirection direction) throws InterruptedException {
@@ -365,16 +365,16 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
                 // Blue Right
                 firstMoveDistance = 33;
                 firstTurnDegrees = 40;
-                secondMoveDistance = 46;
-                secondTurnDegrees = 42;
-                thirdMoveDistance = 6; //4);
+                secondMoveDistance = 43;
+                secondTurnDegrees = 47;
+                thirdMoveDistance = 12; //4);
             } else {
                 // Blue Left
                 firstMoveDistance = 23;
                 firstTurnDegrees = 43;
-                secondMoveDistance = 65;
-                secondTurnDegrees = 43;
-                thirdMoveDistance = 14; //18);
+                secondMoveDistance = 56;
+                secondTurnDegrees = 49;
+                thirdMoveDistance = 27; //18);
             }
         }
 
@@ -433,6 +433,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
         ExtendDumperArm();
         Thread.sleep(500);
+        RetractAllClearRight();
 
         motion.move(DriveMoveDirection.Backward, CLIMBER_DROP, lastDesiredHeading);
         Thread.sleep(300);
@@ -448,17 +449,15 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
         }
     }
 
-    private void RetractDumperArm() throws InterruptedException {
+    private void RetractAllClearRight() throws InterruptedException {
 
-        double dumperPosition = servoClimberDumperArm.getPosition();
-        while (dumperPosition > CLIMBER_DUMPER_ARM_IN) {
-            dumperPosition -= CLIMBER_DUMPER_SLOW_CHANGE;
-            dumperPosition = Range.clip(dumperPosition, CLIMBER_DUMPER_ARM_IN, CLIMBER_DUMPER_ARM_OUT);
-            servoClimberDumperArm.setPosition(dumperPosition);
+        double allclearright = servoAllClearRight.getPosition();
+        while (allclearright > ALL_CLEAR_RIGHT_INIT_POSITION) {
+            allclearright -= ALL_CLEAR_SLOW_CHANGE;
+            allclearright = Range.clip(allclearright, ALL_CLEAR_RIGHT_INIT_POSITION, ALL_CLEAR_RIGHT_UP_POSITION);
+            servoAllClearRight.setPosition(allclearright);
             Thread.sleep(20);
         }
-
-        servoAllClearRight.setPosition(ALL_CLEAR_RIGHT_INIT_POSITION);
     }
 
     /*
@@ -478,7 +477,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
 
         lastDesiredHeading = motion.turn(direction, 82, lastDesiredHeading);
 
-        int moveAmount = 15;
+        int moveAmount = 13;
         if (menuChoices.getStartingPosition() == STARTING_POSITION_RIGHT) {
             moveAmount = 17;
         }
@@ -488,7 +487,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     }
 
     private void stopServos() throws InterruptedException {
-        servoClimberDumperArm.setPosition(CLIMBER_DUMPER_ARM_IN);
+        servoClimberDumperArm.setPosition(CLIMBER_DUMPER_ARM_OUT);
         setDebrisPusher(DebrisPusherDirection.Down);
     }
 
