@@ -25,7 +25,7 @@ public final class Motion {
 
     // Adjust the MOVE_POWER_FACTOR based on the smoothness of floor surface
     private final double DRIVE_SLOW_POWER = .15;
-    private final double DEFAULT_DRIVE_MOTOR_POWER = .8;
+    private final double DEFAULT_DRIVE_MOTOR_POWER = .6;
     private final double MOVE_POWER_FACTOR = .75;   // Multiplier to reduce the actual power
     private final double SLOW_MOVE_POWER_FACTOR = .5;
     private final double MOVE_POWER_HEADING_ADJUSTMENT = .008;
@@ -54,7 +54,7 @@ public final class Motion {
 
     public void simpleMoveBackwards() {
         //double movePower = Range.clip(DEFAULT_DRIVE_MOTOR_POWER * SLOW_MOVE_POWER_FACTOR, -1, 1);
-        setMotorPower(.2);
+        setMotorPower(.17);
     }
 
     public void move(DriveMoveDirection robotMoveDirection, double distanceInInches, double lastDesiredHeading) throws InterruptedException {

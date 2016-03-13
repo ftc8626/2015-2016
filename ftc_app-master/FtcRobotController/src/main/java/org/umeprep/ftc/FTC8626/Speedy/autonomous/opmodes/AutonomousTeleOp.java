@@ -44,7 +44,7 @@ import org.umeprep.ftc.FTC8626.Speedy.autonomous.SingleSelectCategory;
 import org.umeprep.ftc.FTC8626.Speedy.Motion;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-        import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
@@ -141,7 +141,7 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     private void initializeRobot() throws InterruptedException, IllegalStateException, Exception {
 
         InitializeSensors();
-        InitializeServos();
+        //InitializeServos();
         InitializeMenu();
 
         // initialize Motors has to go after sensors because it needs the navigation
@@ -245,6 +245,8 @@ public class AutonomousTeleOp extends LinearOpMode { //SynchronousOpMode {
     }
 
     private void makeSomeMoves() throws Exception, InterruptedException {
+
+        InitializeServos();
 
         MenuChoices menuChoices = getMenuChoices();
 
